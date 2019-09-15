@@ -1,8 +1,10 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿// Copyright (c) 2019 FoxCouncil - License: MIT
+// https://github.com/FoxCouncil/CSCE
 
 namespace FoxEngine
 {
+    using System.Runtime.InteropServices;
+
     public class Engine
     {
         public IPlatform Platform { get; }
@@ -13,6 +15,8 @@ namespace FoxEngine
             {
                 Platform = new WindowsPlatform();
             }
+
+            Platform.MessageBox("FoxEngine", "Hello World");
         }
     }
 }

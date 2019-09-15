@@ -1,0 +1,10 @@
+﻿extensions: designer.cs generated.cs
+extensions: .cs .cpp .h
+// Copyright (c) 2019 FoxCouncil - License: MIT
+// https://github.com/FoxCouncil/CSCE
+
+extensions:  .xml .xsd
+<!--
+Copyright (c) 2019 FoxCouncil - License: MIT
+https://github.com/FoxCouncil/CSCE
+-->
