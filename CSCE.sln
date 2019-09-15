@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29306.81
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CpuEmulator", "CpuEmulator\CpuEmulator.csproj", "{3463C1C5-72DB-4485-A061-72C0DE1CED74}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoxEngine", "FoxEngine\FoxEngine.csproj", "{81CA569E-FB39-46B2-AF88-FD55701B4EA0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3463C1C5-72DB-4485-A061-72C0DE1CED74}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3463C1C5-72DB-4485-A061-72C0DE1CED74}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3463C1C5-72DB-4485-A061-72C0DE1CED74}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3463C1C5-72DB-4485-A061-72C0DE1CED74}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81CA569E-FB39-46B2-AF88-FD55701B4EA0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81CA569E-FB39-46B2-AF88-FD55701B4EA0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81CA569E-FB39-46B2-AF88-FD55701B4EA0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81CA569E-FB39-46B2-AF88-FD55701B4EA0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C457072C-AAAA-4628-917A-3A816DF78E8D}
+	EndGlobalSection
+EndGlobal
