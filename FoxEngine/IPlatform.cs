@@ -9,7 +9,9 @@ namespace FoxEngine
 
         void Initialize();
 
-        void SecondaryInitialize();
+        void Run();
+
+        void Dispose();
 
         void CreateGlContext();
 

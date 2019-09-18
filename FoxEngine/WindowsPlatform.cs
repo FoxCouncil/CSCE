@@ -5,6 +5,7 @@ namespace FoxEngine
 {
     using System;
     using System.ComponentModel;
+    using System.Diagnostics;
     using System.Drawing;
     using System.Runtime.InteropServices;
     using static WindowsPlatform.Interop;
@@ -76,13 +77,19 @@ namespace FoxEngine
             UpdateWindow(_windowHandle);
         }
         
-        public void SecondaryInitialize()
+        public void Run()
         {
             while (GetMessage(out WindowsMessages msg, IntPtr.Zero, 0, 0) != 0)
             {
                 TranslateMessage(ref msg);
                 DispatchMessage(ref msg);
             }
+        }
+
+        public void Dispose()
+        {
+            wglDeleteContext(_glDeviceContext);
+            PostMessage(_windowHandle, (uint)WindowsMessages.DESTROY, IntPtr.Zero, IntPtr.Zero);
         }
 
         public void CreateGlContext()
@@ -134,6 +141,11 @@ namespace FoxEngine
 
         public void Draw()
         {
+            if (!_engine.IsRunning)
+            {
+                return;
+            }
+
             glViewport(0, 0, _engine.Size.Width, _engine.Size.Height);
 
             glClear(GL_COLOR_BUFFER_BIT);
@@ -165,6 +177,11 @@ namespace FoxEngine
 
         public void SetWindowTitle(string title)
         {
+            if (!_engine.IsRunning)
+            {
+                return;
+            }
+
             SetWindowText(_windowHandle, $"{_engine.Name} - {title}");
         }
 
@@ -178,6 +195,18 @@ namespace FoxEngine
                     var height = lParam.ToInt32() >> 16;
 
                     _engine.Resize(width, height);
+                }
+                break;
+
+                case WindowsMessages.CLOSE:
+                {
+                    _engine.Stop();
+                }
+                break;
+
+                case WindowsMessages.DESTROY:
+                {
+                    PostQuitMessage(0);
                 }
                 break;
 
@@ -341,6 +370,9 @@ namespace FoxEngine
             [DllImport(DllUser32)]
             internal static extern IntPtr DispatchMessage([In] ref WindowsMessages lpMsg);
 
+            [DllImport(DllUser32, SetLastError = true, CharSet = CharSet.Auto)]
+            internal static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
             [DllImport(DllUser32, CharSet = CharSet.Auto)]
             internal static extern int MessageBox(IntPtr hWnd, string text, string caption, MessageBoxOptions options);
 
@@ -350,6 +382,13 @@ namespace FoxEngine
 
             [DllImport(DllUser32, SetLastError = true)]
             internal static extern IntPtr CreateWindowEx(WindowStylesEx dwExStyle, [MarshalAs(UnmanagedType.LPStr)] string lpClassName, [MarshalAs(UnmanagedType.LPStr)] string lpWindowName, WindowStyles dwStyle, int x, int y, int nWidth, int nHeight, IntPtr hWndParent, IntPtr hMenu, IntPtr hInstance, IntPtr lpParam);
+
+            [DllImport(DllUser32, CharSet = CharSet.Unicode, SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            internal static extern bool DestroyWindow(IntPtr hwnd);
+
+            [DllImport(DllUser32)]
+            internal static extern void PostQuitMessage(int nExitCode);
 
             [DllImport(DllUser32)]
             internal static extern IntPtr DefWindowProc(IntPtr hWnd, WindowsMessages uMsg, IntPtr wParam, IntPtr lParam);
@@ -386,6 +425,9 @@ namespace FoxEngine
 
             [DllImport(DllOpenGl32)]
             internal static extern IntPtr wglCreateContext(IntPtr hDc);
+
+            [DllImport(DllOpenGl32)]
+            internal static extern IntPtr wglDeleteContext(IntPtr hDc);
 
             [DllImport(DllOpenGl32)]
             internal static extern bool wglMakeCurrent(IntPtr hDc, IntPtr newContext);
