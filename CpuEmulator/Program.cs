@@ -12,8 +12,6 @@ namespace CpuEmulator
             var emulator = new Emulator();
 
             emulator.Start();
-
-            Debugger.Break();
         }
     }
 }
