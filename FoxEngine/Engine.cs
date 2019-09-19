@@ -12,7 +12,7 @@ namespace FoxEngine
 
     public abstract class Engine
     {
-        public Thread _engineThread;
+        private Thread _engineThread;
 
         private Sprite _defaultDrawTarget;
 

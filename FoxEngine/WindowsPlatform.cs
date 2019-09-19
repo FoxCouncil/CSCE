@@ -79,7 +79,7 @@ namespace FoxEngine
         
         public void Run()
         {
-            while (GetMessage(out WindowsMessages msg, IntPtr.Zero, 0, 0) != 0)
+            while (GetMessage(out MSG msg, IntPtr.Zero, 0, 0) != 0)
             {
                 TranslateMessage(ref msg);
                 DispatchMessage(ref msg);
@@ -362,13 +362,13 @@ namespace FoxEngine
             internal static extern IntPtr GetDC(IntPtr hWnd);
 
             [DllImport(DllUser32)]
-            internal static extern int GetMessage(out WindowsMessages lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
+            internal static extern int GetMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
 
             [DllImport(DllUser32)]
-            internal static extern bool TranslateMessage([In] ref WindowsMessages lpMsg);
+            internal static extern bool TranslateMessage([In] ref MSG lpMsg);
 
             [DllImport(DllUser32)]
-            internal static extern IntPtr DispatchMessage([In] ref WindowsMessages lpMsg);
+            internal static extern IntPtr DispatchMessage([In] ref MSG lpMsg);
 
             [DllImport(DllUser32, SetLastError = true, CharSet = CharSet.Auto)]
             internal static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
@@ -1825,6 +1825,30 @@ namespace FoxEngine
                 ///     <b>Windows 2000/XP:</b> Minimizes a window, even if the thread that owns the window is not responding. This flag
                 ///     should only be used when minimizing windows from a different thread.</summary>
                 ForceMinimize = 11
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct MSG
+            {
+                public IntPtr hwnd;
+                public uint message;
+                public IntPtr wParam;
+                public IntPtr lParam;
+                public uint time;
+                public POINT pt;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct POINT
+            {
+                public int X;
+                public int Y;
+
+                public POINT(int x, int y)
+                {
+                    X = x;
+                    Y = y;
+                }
             }
 
             [StructLayout(LayoutKind.Sequential)]
