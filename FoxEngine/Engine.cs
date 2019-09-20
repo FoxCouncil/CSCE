@@ -943,6 +943,8 @@ namespace FoxEngine
 
             IsRunning = true;
 
+            DrawString(10, 10, $"{Name} Engine 1.0\nREADY!", Pixel.Black, 2);
+
             Create();
 
             var stopWatch = Stopwatch.StartNew();
@@ -961,7 +963,7 @@ namespace FoxEngine
 
                 _fpsAvgBuffer[_frameCount % 8] = (int)Math.Floor(1.0f / elapsedTime.TotalMilliseconds * 1000);
 
-                Platform.SetWindowTitle(Convert.ToInt32(_fpsAvgBuffer.Average()) + " FPS");
+                // Platform.SetWindowTitle(Convert.ToInt32(_fpsAvgBuffer.Average()) + " FPS");
 
                 _frameCount++;
             }

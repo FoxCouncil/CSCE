@@ -31,7 +31,10 @@ namespace FoxEngine
 
         public static Pixel Red = new Pixel(255, 0, 0);
         public static Pixel Green = new Pixel(0, 255, 0);
+
+        public static Pixel DarkBlue = new Pixel(2, 30, 45);
         public static Pixel Blue = new Pixel(0, 0, 255);
+
 
         public static Pixel Blank = new Pixel(0, 0, 0, 0);
     }

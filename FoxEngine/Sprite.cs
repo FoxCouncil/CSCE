@@ -18,6 +18,8 @@ namespace FoxEngine
 
         public int TotalPixels { get; }
 
+        public GCHandle Handle { get; }
+
         public Sprite()
         {
             Width = 0;
@@ -36,6 +38,16 @@ namespace FoxEngine
             for (var idx = 0; idx < TotalPixels; idx++)
             {
                 PixelData[idx] = Pixel.White;
+            }
+
+            Handle = GCHandle.Alloc(PixelData, GCHandleType.Pinned);
+        }
+
+        ~Sprite()
+        {
+            if (Handle != null)
+            {
+                Handle.Free();
             }
         }
 

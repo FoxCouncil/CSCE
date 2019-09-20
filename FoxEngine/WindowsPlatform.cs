@@ -38,6 +38,8 @@ namespace FoxEngine
 
         private GLuint _glBuffer;
 
+        private MSG _windowMsg;
+
         internal WindowsPlatform(Engine engine)
         {
             _engine = engine;
@@ -79,10 +81,19 @@ namespace FoxEngine
         
         public void Run()
         {
-            while (GetMessage(out MSG msg, IntPtr.Zero, 0, 0) != 0)
+            var returnVal = 0;
+
+            while ((returnVal = GetMessage(out MSG _windowMsg, IntPtr.Zero, 0, 0)) != 0)
             {
-                TranslateMessage(ref msg);
-                DispatchMessage(ref msg);
+                if (returnVal < 0)
+                {
+                    throw new Exception("Woah");
+                }
+                else
+                {
+                    TranslateMessage(ref _windowMsg);
+                    DispatchMessage(ref _windowMsg);
+                }
             }
         }
 
@@ -132,11 +143,7 @@ namespace FoxEngine
 
             glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
 
-            var pixelData = GCHandle.Alloc(_engine.DrawTarget.PixelData, GCHandleType.Pinned);
-
-            glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA, _engine.DrawTarget.Width, _engine.DrawTarget.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixelData.AddrOfPinnedObject());
-
-            pixelData.Free();
+            glTexImage2D(GL_TEXTURE_2D, 0, (int)GL_RGBA, _engine.DrawTarget.Width, _engine.DrawTarget.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, IntPtr.Zero);
         }
 
         public void Draw()
@@ -150,11 +157,7 @@ namespace FoxEngine
 
             glClear(GL_COLOR_BUFFER_BIT);
 
-            var pixelData = GCHandle.Alloc(_engine.DrawTarget.PixelData, GCHandleType.Pinned);
-
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _engine.DrawTarget.Width, _engine.DrawTarget.Height, GL_RGBA, GL_UNSIGNED_BYTE, pixelData.AddrOfPinnedObject());
-
-            pixelData.Free();
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _engine.DrawTarget.Width, _engine.DrawTarget.Height, GL_RGBA, GL_UNSIGNED_BYTE, _engine.DrawTarget.Handle.AddrOfPinnedObject());
 
             glBegin(GL_QUADS);
 
@@ -182,7 +185,7 @@ namespace FoxEngine
                 return;
             }
 
-            SetWindowText(_windowHandle, $"{_engine.Name} - {title}");
+            SetWindowTextW(_windowHandle, $"{_engine.Name} - {title}");
         }
 
         internal IntPtr WindowMessage(IntPtr hWnd, WindowsMessages msg, IntPtr wParam, IntPtr lParam)
@@ -381,7 +384,7 @@ namespace FoxEngine
             internal static extern short RegisterClassEx([In] ref WNDCLASSEX lpwcx);
 
             [DllImport(DllUser32, SetLastError = true)]
-            internal static extern IntPtr CreateWindowEx(WindowStylesEx dwExStyle, [MarshalAs(UnmanagedType.LPStr)] string lpClassName, [MarshalAs(UnmanagedType.LPStr)] string lpWindowName, WindowStyles dwStyle, int x, int y, int nWidth, int nHeight, IntPtr hWndParent, IntPtr hMenu, IntPtr hInstance, IntPtr lpParam);
+            internal static extern IntPtr CreateWindowEx(WindowStylesEx dwExStyle, string lpClassName, string lpWindowName, WindowStyles dwStyle, int x, int y, int nWidth, int nHeight, IntPtr hWndParent, IntPtr hMenu, IntPtr hInstance, IntPtr lpParam);
 
             [DllImport(DllUser32, CharSet = CharSet.Unicode, SetLastError = true)]
             [return: MarshalAs(UnmanagedType.Bool)]
@@ -391,7 +394,7 @@ namespace FoxEngine
             internal static extern void PostQuitMessage(int nExitCode);
 
             [DllImport(DllUser32)]
-            internal static extern IntPtr DefWindowProc(IntPtr hWnd, WindowsMessages uMsg, IntPtr wParam, IntPtr lParam);
+            internal static extern IntPtr DefWindowProc([In] IntPtr hWnd, [In] WindowsMessages uMsg, [In] IntPtr wParam, [In] IntPtr lParam);
 
             [DllImport(DllUser32)]
             internal static extern bool ShowWindow(IntPtr hWnd, ShowWindowCommands nCmdShow);
@@ -399,8 +402,8 @@ namespace FoxEngine
             [DllImport(DllUser32)]
             internal static extern bool UpdateWindow(IntPtr hWnd);
 
-            [DllImport(DllUser32, SetLastError = true, CharSet = CharSet.Auto)]
-            internal static extern bool SetWindowText(IntPtr hwnd, string lpString);
+            [DllImport(DllUser32, SetLastError = true, CharSet = CharSet.Unicode)]
+            internal static extern bool SetWindowTextW(IntPtr hwnd, [MarshalAs(UnmanagedType.LPWStr)] string lpString);
 
             [DllImport(DllUser32, SetLastError = true)]
             internal static extern bool AdjustWindowRect(ref RECT lpRect, WindowStyles dwStyle, bool bMenu);
@@ -1831,11 +1834,12 @@ namespace FoxEngine
             public struct MSG
             {
                 public IntPtr hwnd;
-                public uint message;
+                public WindowsMessages message;
                 public IntPtr wParam;
                 public IntPtr lParam;
                 public uint time;
                 public POINT pt;
+                public uint lPrivate;
             }
 
             [StructLayout(LayoutKind.Sequential)]
