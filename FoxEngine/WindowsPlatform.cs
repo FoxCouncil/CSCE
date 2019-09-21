@@ -31,6 +31,7 @@ namespace FoxEngine
 
         private Engine _engine;
 
+        private WNDCLASSEX _windowClass;
         private IntPtr _windowHandle;
         private IntPtr _glDeviceContext;
 
@@ -224,7 +225,7 @@ namespace FoxEngine
 
         private void CreateWindowClass()
         {
-            var windowClass = new WNDCLASSEX
+            _windowClass = new WNDCLASSEX
             {
                 hIcon = LoadIcon(IntPtr.Zero, SystemIcons.IDI_APPLICATION),
                 hCursor = LoadCursor(IntPtr.Zero, SystemCursors.IDC_ARROW),
@@ -239,7 +240,7 @@ namespace FoxEngine
                 style = ClassStyles.HorizontalRedraw | ClassStyles.VerticalRedraw | ClassStyles.OwnDC
             };
 
-            var regResult = RegisterClassEx(ref windowClass);
+            var regResult = RegisterClassEx(ref _windowClass);
 
             if (regResult == 0)
             {
