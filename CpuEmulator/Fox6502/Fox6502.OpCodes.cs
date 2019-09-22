@@ -15,7 +15,7 @@ namespace CpuEmulator
         {
             Fetch();
 
-            _temp = (ushort)(A + _fetched + (GetFlag(Flags.C) ? 0 : 1));
+            _temp = (ushort)(A + _fetched + (GetFlag(Flags.C) ? 1 : 0));
 
             SetFlag(Flags.C, _temp > 255);
 
@@ -80,13 +80,13 @@ namespace CpuEmulator
         {
             if (!GetFlag(Flags.C))
             {
-                _cycles++;
+                CyclesLeft++;
 
                 _addrAbs = (ushort)(PC + _addrRel);
 
                 if ((_addrAbs & 0xFF00) != (PC & 0xFF00))
                 {
-                    _cycles++;
+                    CyclesLeft++;
                 }
 		
 		        PC = _addrAbs;
@@ -102,13 +102,13 @@ namespace CpuEmulator
         {
             if (GetFlag(Flags.C))
             {
-                _cycles++;
+                CyclesLeft++;
 
                 _addrAbs = (ushort)(PC + _addrRel);
 
                 if ((_addrAbs & 0xFF00) != (PC & 0xFF00))
                 {
-                    _cycles++;
+                    CyclesLeft++;
                 }
 		
 		        PC = _addrAbs;
@@ -124,13 +124,13 @@ namespace CpuEmulator
         {
             if (GetFlag(Flags.Z))
             {
-                _cycles++;
+                CyclesLeft++;
 
                 _addrAbs = (ushort)(PC + _addrRel);
 
                 if ((_addrAbs & 0xFF00) != (PC & 0xFF00))
                 {
-                    _cycles++;
+                    CyclesLeft++;
                 }
 		
 		        PC = _addrAbs;
@@ -165,13 +165,13 @@ namespace CpuEmulator
         {
             if (GetFlag(Flags.N))
             {
-                _cycles++;
+                CyclesLeft++;
 
                 _addrAbs = (ushort)(PC + _addrRel);
 
                 if ((_addrAbs & 0xFF00) != (PC & 0xFF00))
                 {
-                    _cycles++;
+                    CyclesLeft++;
                 }
 		
 		        PC = _addrAbs;
@@ -187,13 +187,13 @@ namespace CpuEmulator
         {
             if (!GetFlag(Flags.Z))
             {
-                _cycles++;
+                CyclesLeft++;
 
                 _addrAbs = (ushort)(PC + _addrRel);
 
                 if ((_addrAbs & 0xFF00) != (PC & 0xFF00))
                 {
-                    _cycles++;
+                    CyclesLeft++;
                 }
 		
 		        PC = _addrAbs;
@@ -209,13 +209,13 @@ namespace CpuEmulator
         {
             if (!GetFlag(Flags.N))
             {
-                _cycles++;
+                CyclesLeft++;
 
                 _addrAbs = (ushort)(PC + _addrRel);
 
                 if ((_addrAbs & 0xFF00) != (PC & 0xFF00))
                 {
-                    _cycles++;
+                    CyclesLeft++;
                 }
 		
 		        PC = _addrAbs;
@@ -258,13 +258,13 @@ namespace CpuEmulator
         {
             if (!GetFlag(Flags.V))
             {
-                _cycles++;
+                CyclesLeft++;
 
                 _addrAbs = (ushort)(PC + _addrRel);
 
                 if ((_addrAbs & 0xFF00) != (PC & 0xFF00))
                 {
-                    _cycles++;
+                    CyclesLeft++;
                 }
 
                 PC = _addrAbs;
@@ -280,13 +280,13 @@ namespace CpuEmulator
         {
             if (GetFlag(Flags.V))
             {
-                _cycles++;
+                CyclesLeft++;
 
                 _addrAbs = (ushort)(PC + _addrRel);
 
                 if ((_addrAbs & 0xFF00) != (PC & 0xFF00))
                 {
-                    _cycles++;
+                    CyclesLeft++;
                 }
 
                 PC = _addrAbs;

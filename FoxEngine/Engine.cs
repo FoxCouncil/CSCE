@@ -36,7 +36,7 @@ namespace FoxEngine
 
         public Sprite DrawTarget { get; private set; }
 
-        public Engine(string name, int width, int height)
+        public Engine(string name, int width, int height, int pixelMult = 2)
         {
             GenerateFontSprite();
 
@@ -51,7 +51,7 @@ namespace FoxEngine
 
             Name = name;
 
-            Resize(width, height);
+            Resize(width * pixelMult, height * pixelMult);
 
             _defaultDrawTarget = new Sprite(width, height);
 
@@ -103,6 +103,14 @@ namespace FoxEngine
             }
 
             Size = new Size(width, height);
+        }
+
+        public void Clear(Pixel clearColor)
+        {
+            if (DrawTarget != null)
+            {
+                DrawTarget.Clear(clearColor);
+            }
         }
 
         public void DrawSpritePartial(int x, int y, Sprite sprite, int ox, int oy, int width, int height, int scale)
@@ -963,7 +971,7 @@ namespace FoxEngine
 
                 _fpsAvgBuffer[_frameCount % 8] = (int)Math.Floor(1.0f / elapsedTime.TotalMilliseconds * 1000);
 
-                // Platform.SetWindowTitle(Convert.ToInt32(_fpsAvgBuffer.Average()) + " FPS");
+                Platform.SetWindowTitle(Convert.ToInt32(_fpsAvgBuffer.Average()) + " FPS");
 
                 _frameCount++;
             }

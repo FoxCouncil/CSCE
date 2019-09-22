@@ -13,4 +13,8 @@
     <ProjectReference Include="..\FoxEngine\FoxEngine.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="NES\" />
+  </ItemGroup>
+
 </Project>
