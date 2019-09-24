@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿// Copyright (c) 2019 FoxCouncil - License: MIT
+// https://github.com/FoxCouncil/CSCE
 
 namespace FoxEngine
 {

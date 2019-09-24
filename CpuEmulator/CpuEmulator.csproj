@@ -5,16 +5,18 @@
     <TargetFramework>netcoreapp2.2</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="CpuEmulator.licenseheader" />
-  </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FoxEngine\FoxEngine.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="NES\" />
+    <None Update="nestest.nes">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

@@ -3,7 +3,7 @@
 
 namespace CpuEmulator
 {
-    partial class Fox6502
+    public partial class Fox6502
     {
         /// <summary>ADC (ADd with Carry)</summary>
         /// <remarks>Affects Flags: N V Z C</remarks>
@@ -232,8 +232,6 @@ namespace CpuEmulator
         {
             PC++;
 
-            SetFlag(Flags.I, true);
-
             BusWrite((ushort)(0x0100 + SP), (byte)((PC >> 8) & 0x00FF));
             SP--;
             BusWrite((ushort)(0x0100 + SP), (byte)(PC & 0x00FF));
@@ -245,6 +243,8 @@ namespace CpuEmulator
             SP--;
 
             SetFlag(Flags.B, false);
+
+            SetFlag(Flags.I, true);
 
             PC = (ushort)(BusRead(0xFFFE) | BusRead(0xFFFF) << 8);
 
@@ -527,7 +527,7 @@ namespace CpuEmulator
         {
             PC--;
 
-            BusWrite((ushort)(0x0100 + SP), (byte)((PC << 8) & 0x00FF));
+            BusWrite((ushort)(0x0100 + SP), (byte)((PC >> 8) & 0x00FF));
             SP--;
 
             BusWrite((ushort)(0x0100 + SP), (byte)(PC & 0x00FF));

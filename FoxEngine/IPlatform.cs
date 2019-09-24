@@ -7,8 +7,6 @@ namespace FoxEngine
 {
     public interface IPlatform
     {
-        event Action<int> OnKeyUp;
-
         void MessageBox(string title, string message);
 
         void Initialize();

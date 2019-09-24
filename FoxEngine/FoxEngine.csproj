@@ -4,8 +4,4 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="FoxEngine.licenseheader" />
-  </ItemGroup>
-
 </Project>

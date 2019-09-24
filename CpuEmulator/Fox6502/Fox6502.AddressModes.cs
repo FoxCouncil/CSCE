@@ -3,7 +3,7 @@
 
 namespace CpuEmulator
 {
-    partial class Fox6502
+    public partial class Fox6502
     {
         private byte IMP()
         {

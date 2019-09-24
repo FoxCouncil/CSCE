@@ -7,7 +7,7 @@ namespace CpuEmulator
     using System.Collections.Generic;
     using I = Fox6502.Instruction;
 
-    partial class Fox6502
+    public partial class Fox6502
     {
         internal struct Instruction
         {

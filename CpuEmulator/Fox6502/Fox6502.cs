@@ -1,12 +1,13 @@
 ﻿// Copyright (c) 2019 FoxCouncil - License: MIT
 // https://github.com/FoxCouncil/CSCE
 
+using CpuEmulator.NES;
 using System;
 using System.Collections.Generic;
 
 namespace CpuEmulator
 {
-    partial class Fox6502
+    public partial class Fox6502
     {
         private byte _fetched;
 
@@ -18,7 +19,7 @@ namespace CpuEmulator
 
         private byte _opcode;
 
-        private MemoryMappedBus _bus;
+        private NesBus _bus;
 
         // Main Register
         public byte A { get; set; }
@@ -42,13 +43,11 @@ namespace CpuEmulator
 
         public uint CyclesTotal { get; private set; }
 
+        public bool Complete => CyclesLeft == 0;
+
         public Fox6502()
         {
             BuildInstructionSet();
-
-            _bus = new MemoryMappedBus();
-
-            Reset();
         }
 
         public void Reset()
@@ -101,7 +100,7 @@ namespace CpuEmulator
             }
         }
 
-        public void NMI()
+        public void Nmi()
         {
             // Push the program counter to the stack. It's 16-bits don't forget so that takes two pushes
             BusWrite((ushort)(0x0100 + SP), (byte)((PC >> 8) & 0x00FF));
@@ -173,6 +172,13 @@ namespace CpuEmulator
             }
 
             return _fetched;
+        }
+
+        public void ConnectBus(NesBus bus)
+        {
+            _bus = bus;
+
+            Reset();
         }
 
         public byte BusRead(ushort address)
@@ -247,25 +253,25 @@ namespace CpuEmulator
                     {
                         lo = _bus.Read((ushort)addr); addr++;
                         hi = 0x00;
-                        sInst += " $" + lo.ToString("X2").PadRight(10) + ", X {ZPX}";
+                        sInst += " $" + (lo.ToString("X2") + ", X").PadRight(10) + " {ZPX}";
                     }
                     else if (InstructionLookup[opcode].AddressMode == ZPY)
                     {
                         lo = _bus.Read((ushort)addr); addr++;
                         hi = 0x00;
-                        sInst += " $" + lo.ToString("X2").PadRight(10) + ", Y {ZPY}";
+                        sInst += " $" + (lo.ToString("X2") + ", Y").PadRight(10) + " {ZPY}";
                     }
                     else if (InstructionLookup[opcode].AddressMode == IZX)
                     {
                         lo = _bus.Read((ushort)addr); addr++;
                         hi = 0x00;
-                        sInst += "($" + lo.ToString("X2") + ", X) {IZX}";
+                        sInst += "($" + (lo.ToString("X2") + ", X)").PadRight(10) + " {IZX}";
                     }
                     else if (InstructionLookup[opcode].AddressMode == IZY)
                     {
                         lo = _bus.Read((ushort)addr); addr++;
                         hi = 0x00;
-                        sInst += "($" + lo.ToString("X2") + "), Y {IZY}";
+                        sInst += "($" + (lo.ToString("X2") + "), Y").PadRight(10) + " {IZY}";
                     }
                     else if (InstructionLookup[opcode].AddressMode == ABS)
                     {
@@ -277,13 +283,13 @@ namespace CpuEmulator
                     {
                         lo = _bus.Read((ushort)addr); addr++;
                         hi = _bus.Read((ushort)addr); addr++;
-                        sInst += " $" + ((ushort)(hi << 8) | lo).ToString("X4") + ", X {ABX}";
+                        sInst += " $" + (((ushort)(hi << 8) | lo).ToString("X4") + ", X").PadRight(10) + " {ABX}";
                     }
                     else if (InstructionLookup[opcode].AddressMode == ABY)
                     {
                         lo = _bus.Read((ushort)addr); addr++;
                         hi = _bus.Read((ushort)addr); addr++;
-                        sInst += " $" + ((ushort)(hi << 8) | lo).ToString("X4") + ", Y {ABY}";
+                        sInst += " $" + (((ushort)(hi << 8) | lo).ToString("X4") + ", Y").PadRight(10) + " {ABY}";
                     }
                     else if (InstructionLookup[opcode].AddressMode == IND)
                     {
@@ -309,15 +315,23 @@ namespace CpuEmulator
         }
 
         [Flags]
-        internal enum Flags : byte
+        public enum Flags : byte
         {
+            /// <summary>Carry</summary>
             C = (1 << 0),
+            /// <summary>Zero</summary>
             Z = (1 << 1),
+            /// <summary>Interrupt Disable</summary>
             I = (1 << 2),
+            /// <summary>Decimal</summary>
             D = (1 << 3),
+            /// <summary>B Flag, No CPU Effect</summary>
             B = (1 << 4),
+            /// <summary>U Flag, No CPU Effect</summary>
             U = (1 << 5),
+            /// <summary>Overflow</summary>
             V = (1 << 6),
+            /// <summary>Negative</summary>
             N = (1 << 7)
         }
     }

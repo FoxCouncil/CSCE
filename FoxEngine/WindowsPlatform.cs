@@ -22,20 +22,30 @@ namespace FoxEngine
 
         private Engine _engine;
 
-        private WNDCLASSEX _windowClass;
-        private IntPtr _windowHandle;
-        private IntPtr _glDeviceContext;
+        private bool[] _keyboardStateNew;
+        private bool[] _keyboardStateOld;
 
-        private IntPtr _dummyRenderingContext;
+        private bool[] _mouseStateNew;
+        private bool[] _mouseStateOld;
+
+        private WNDCLASSEX _windowClass;
+
+        private IntPtr _windowHandle;
+        private IntPtr _deviceContext;
+        private IntPtr _renderingContext;
 
         private GLuint _glBuffer;
 
         private MSG _windowMsg;
 
-        public event Action<int> OnKeyUp;
-
         internal WindowsPlatform(Engine engine)
         {
+            _keyboardStateNew = new bool[(int)KeyboardButton.MAX];
+            _keyboardStateOld = new bool[(int)KeyboardButton.MAX];
+
+            _mouseStateNew = new bool[(int)MouseButton.MAX];
+            _mouseStateOld = new bool[(int)MouseButton.MAX];
+
             _engine = engine;
         }
 
@@ -93,7 +103,7 @@ namespace FoxEngine
 
         public void Dispose()
         {
-            wglDeleteContext(_glDeviceContext);
+            wglDeleteContext(_deviceContext);
             PostMessage(_windowHandle, (uint)WindowsMessages.DESTROY, IntPtr.Zero, IntPtr.Zero);
         }
 
@@ -103,28 +113,37 @@ namespace FoxEngine
 
             var pixelFormat = GetBasicPixelFormatDescriptor();
 
-            var pf = ChoosePixelFormat(_glDeviceContext, ref pixelFormat);
+            var pf = ChoosePixelFormat(_deviceContext, ref pixelFormat);
 
             if (pf == 0)
             {
                 ProcessWin32Error();
             }
 
-            if (!SetPixelFormat(_glDeviceContext, pf, ref pixelFormat))
+            if (!SetPixelFormat(_deviceContext, pf, ref pixelFormat))
             {
                 ProcessWin32Error();
             }
 
-            _dummyRenderingContext = wglCreateContext(_glDeviceContext);
+            _renderingContext = wglCreateContext(_deviceContext);
 
-            if (_dummyRenderingContext == IntPtr.Zero)
+            if (_renderingContext == IntPtr.Zero)
             {
                 ProcessWin32Error();
             }
 
-            wglMakeCurrent(_glDeviceContext, _dummyRenderingContext);
+            wglMakeCurrent(_deviceContext, _renderingContext);
 
             glViewport(0, 0, _engine.Size.Width, _engine.Size.Height);
+
+            var wglSwapIntervalPtr = wglGetProcAddress("wglSwapIntervalEXT");
+
+            if (wglSwapIntervalPtr != IntPtr.Zero)
+            {
+                var wglSwapInterval = Marshal.GetDelegateForFunctionPointer<wglSwapInterval>(wglSwapIntervalPtr);
+
+                wglSwapInterval(0);
+            }
 
             glEnable(GL_TEXTURE_2D);
 
@@ -145,6 +164,54 @@ namespace FoxEngine
             if (!_engine.IsRunning)
             {
                 return;
+            }
+
+            for (var keyIdx = 0; keyIdx < (int)KeyboardButton.MAX; keyIdx++)
+            {
+                var currentKey = _engine.Keyboard[(KeyboardButton)keyIdx];
+
+                currentKey.Pressed = false;
+                currentKey.Released = false;
+
+                if (_keyboardStateNew[keyIdx] != _keyboardStateOld[keyIdx])
+                {
+                    if (_keyboardStateNew[keyIdx])
+                    {
+                        currentKey.Pressed = !currentKey.Held;
+                        currentKey.Held = true;
+                    }
+                    else
+                    {
+                        currentKey.Released = true;
+                        currentKey.Held = false;
+                    }
+
+                    _keyboardStateOld[keyIdx] = _keyboardStateNew[keyIdx];
+                }
+            }
+
+            for (var mbIdx = 0; mbIdx < (int)MouseButton.MAX; mbIdx++)
+            {
+                var mouseButton = _engine.Mouse[(MouseButton)mbIdx];
+
+                mouseButton.Pressed = false;
+                mouseButton.Released = false;
+
+                if (_mouseStateNew[mbIdx] != _mouseStateOld[mbIdx])
+                {
+                    if (_mouseStateNew[mbIdx])
+                    {
+                        mouseButton.Pressed = !mouseButton.Held;
+                        mouseButton.Held = true;
+                    }
+                    else
+                    {
+                        mouseButton.Released = true;
+                        mouseButton.Held = false;
+                    }
+
+                    _mouseStateOld[mbIdx] = _mouseStateNew[mbIdx];
+                }
             }
 
             glViewport(0, 0, _engine.Size.Width, _engine.Size.Height);
@@ -169,7 +236,7 @@ namespace FoxEngine
 
             glEnd();
 
-            SwapBuffers(_glDeviceContext);
+            SwapBuffers(_deviceContext);
         }
 
         public void SetWindowTitle(string title)
@@ -188,7 +255,67 @@ namespace FoxEngine
             {
                 case WindowsMessages.KEYUP:
                 {
-                    OnKeyUp?.Invoke(wParam.ToInt32());
+                    var v = wParam.ToInt32();
+
+                    var keyCode = _keyMap[v];
+
+                    _keyboardStateNew[keyCode] = false;
+
+                    if ((KeyboardButton)keyCode == KeyboardButton.None)
+                    {
+                        Console.WriteLine($"  KeyUp({v}): {keyCode}, {(KeyboardButton)keyCode}");
+                    }
+                }
+                break;
+
+                case WindowsMessages.KEYDOWN:
+                {
+                    var v = wParam.ToInt32();
+
+                    var keyCode = _keyMap[v];
+
+                    _keyboardStateNew[keyCode] = true;
+
+                    if ((KeyboardButton)keyCode == KeyboardButton.None)
+                    {
+                        Console.WriteLine($"KeyDown({v}): {keyCode}, {(KeyboardButton)keyCode}");
+                    }
+                }
+                break;
+
+                case WindowsMessages.LBUTTONDOWN:
+                {
+                    _mouseStateNew[(int)MouseButton.Left] = true;
+                }
+                break;
+
+                case WindowsMessages.LBUTTONUP:
+                {
+                    _mouseStateNew[(int)MouseButton.Left] = false;
+                }
+                break;
+
+                case WindowsMessages.RBUTTONDOWN:
+                {
+                    _mouseStateNew[(int)MouseButton.Right] = true;
+                }
+                break;
+
+                case WindowsMessages.RBUTTONUP:
+                {
+                    _mouseStateNew[(int)MouseButton.Right] = false;
+                }
+                break;
+
+                case WindowsMessages.MBUTTONDOWN:
+                {
+                    _mouseStateNew[(int)MouseButton.Middle] = true;
+                }
+                break;
+
+                case WindowsMessages.MBUTTONUP:
+                {
+                    _mouseStateNew[(int)MouseButton.Middle] = false;
                 }
                 break;
 
@@ -250,9 +377,9 @@ namespace FoxEngine
 
         private void CreateDeviceContext()
         {
-            _glDeviceContext = GetDC(_windowHandle);
+            _deviceContext = GetDC(_windowHandle);
 
-            if (_glDeviceContext != IntPtr.Zero)
+            if (_deviceContext != IntPtr.Zero)
             {
                 return;
             }
@@ -434,6 +561,11 @@ namespace FoxEngine
 
             [DllImport(DllOpenGl32)]
             internal static extern bool wglMakeCurrent(IntPtr hDc, IntPtr newContext);
+
+            [DllImport(DllOpenGl32, CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
+            internal static extern IntPtr wglGetProcAddress(string functionName);
+
+            internal delegate bool wglSwapInterval(int interval);
 
             [DllImport(DllOpenGl32)]
             internal static extern void glViewport(GLint x, GLint y, GLsizei width, GLsizei height);
@@ -2697,5 +2829,16 @@ namespace FoxEngine
                 public uint dwDamageMask;
             }
         }
+
+        private readonly int[] _keyMap = new[] {
+             0,   0,   0,   0, 0,  0,   0,  0,   0, 0,   0, 0, 0, 0, 0, 0, // 15 
+             0,   0,   0,   0, 0,  0,   0,  0,   0, 0,   0, 0, 0, 0, 0, 0, // 31
+            12,   0,   0,   0, 0, 23,  21, 24,  22, 0,   0, 0, 0, 0, 0, 0, // 47
+             0,   0,   0,   0, 0,  0,   0,  0,   0, 0,   0, 0, 0, 0, 0, 0, // 63
+             0, 111,   0, 113, 0,  0, 116,  0,   0, 0,   0, 0, 0, 0, 0, 0, // 79
+           126,   0, 128, 129, 0,  0,   0,  0, 134, 0, 136, 0, 0, 0, 0, 0, // 95
+             0,   0,   0,   0, 0,  0,   0,  0,   0, 0,   0, 0, 0, 0, 0, 0, // 111
+             0,   0,   0,   0, 0,  0,   0,  0,   0, 0,   0, 0, 0, 0, 0, 0  // 127
+        };
     }
 }

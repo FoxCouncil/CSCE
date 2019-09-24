@@ -4,6 +4,7 @@
 namespace FoxEngine
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Drawing;
     using System.Linq;
@@ -36,8 +37,14 @@ namespace FoxEngine
 
         public Sprite DrawTarget { get; private set; }
 
+        public Dictionary<KeyboardButton, Button> Keyboard = new Dictionary<KeyboardButton, Button>();
+
+        public Dictionary<MouseButton, Button> Mouse = new Dictionary<MouseButton, Button>();
+
         public Engine(string name, int width, int height, int pixelMult = 2)
         {
+            GenerateUserInput();
+
             GenerateFontSprite();
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -708,7 +715,7 @@ namespace FoxEngine
 
         public void DrawRect(int x, int y, int width, int height, Pixel pixel)
         {
-            DrawLine(x, y, x + width, y, pixel);
+            DrawLine(x, y, x + width, y, pixel); // Works
             DrawLine(x + width, y, x + width, y + height, pixel);
             DrawLine(x + width, y + height, x, y + height, pixel);
             DrawLine(x, y + height, x, y, pixel);
@@ -722,7 +729,7 @@ namespace FoxEngine
 
             if (dx == 0)
             {
-                if (y2 > y1)
+                if (y2 < y1)
                 {
                     (y2, y1) = (y1, y2);
                 }
@@ -902,6 +909,7 @@ namespace FoxEngine
             PixelMode = pm;
         }
 
+        [DebuggerStepThrough]
         public void Draw(int x, int y, Pixel pixel)
         {
             if (DrawTarget == null)
@@ -974,6 +982,19 @@ namespace FoxEngine
                 Platform.SetWindowTitle(Convert.ToInt32(_fpsAvgBuffer.Average()) + " FPS");
 
                 _frameCount++;
+            }
+        }
+
+        private void GenerateUserInput()
+        {
+            for (var keyIdx = 0; keyIdx < (int)KeyboardButton.MAX; keyIdx++)
+            {
+                Keyboard.Add((KeyboardButton)keyIdx, new Button());
+            }
+
+            for (var mbIdx = 0; mbIdx < (int)MouseButton.MAX; mbIdx++)
+            {
+                Mouse.Add((MouseButton)mbIdx, new Button());
             }
         }
 
