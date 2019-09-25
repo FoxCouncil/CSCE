@@ -37,6 +37,9 @@ namespace CpuEmulator
             Code = _nes.Cpu.Disassemble(0, 0xFFFF);
 
             _nes.Reset();
+
+            _nes.Cpu.PC = 0xC5F5;
+            _nes.Cpu.P = 0x24;
         }
 
         public override void Update(double frameTime)
@@ -74,7 +77,7 @@ namespace CpuEmulator
             }
             else
             {
-                if (Keyboard[KeyboardButton.C].Held)
+                if (Keyboard[KeyboardButton.C].Pressed)
                 {
                     do
                     {
@@ -215,6 +218,7 @@ namespace CpuEmulator
             DrawString(x + offset + 80, y, "I", _nes.Cpu.GetFlag(Fox6502.Flags.I) ? Pixel.Green : Pixel.Red);
             DrawString(x + offset + 96, y, "Z", _nes.Cpu.GetFlag(Fox6502.Flags.Z) ? Pixel.Green : Pixel.Red);
             DrawString(x + offset + 114, y, "C", _nes.Cpu.GetFlag(Fox6502.Flags.C) ? Pixel.Green : Pixel.Red);
+            DrawString(x + offset + 128, y, $"({HexOutput(_nes.Cpu.P, 2)})", Pixel.White);
             DrawString(x, y + 10, "     PC: $" + HexOutput(_nes.Cpu.PC, 4), Pixel.White);
             DrawString(x, y + 20, "      A: $" + HexOutput(_nes.Cpu.A, 2) + "  [" + _nes.Cpu.A + "]", Pixel.White);
             DrawString(x, y + 30, "      X: $" + HexOutput(_nes.Cpu.X, 2) + "  [" + _nes.Cpu.X + "]", Pixel.White);

@@ -58,7 +58,7 @@ namespace CpuEmulator
             _temp = (ushort)(_fetched << 1);
 
             SetFlag(Flags.C, (_temp & 0xFF00) > 0);
-	        SetFlag(Flags.Z, (_temp & 0x00FF) == 0x00);
+	        SetFlag(Flags.Z, (_temp & 0x00FF) == 0);
 	        SetFlag(Flags.N, (_temp & 0x80) > 0);
 
             if (InstructionLookup[_opcode].AddressMode == IMP)
@@ -232,6 +232,8 @@ namespace CpuEmulator
         {
             PC++;
 
+            SetFlag(Flags.I, true);
+
             BusWrite((ushort)(0x0100 + SP), (byte)((PC >> 8) & 0x00FF));
             SP--;
             BusWrite((ushort)(0x0100 + SP), (byte)(PC & 0x00FF));
@@ -243,8 +245,6 @@ namespace CpuEmulator
             SP--;
 
             SetFlag(Flags.B, false);
-
-            SetFlag(Flags.I, true);
 
             PC = (ushort)(BusRead(0xFFFE) | BusRead(0xFFFF) << 8);
 

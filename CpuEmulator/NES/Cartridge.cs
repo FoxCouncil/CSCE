@@ -71,6 +71,7 @@ namespace CpuEmulator.NES
                     {
                         _characterMemory = new byte[_characterBanks * 8192];
                     }
+
                     fileStream.Read(_characterMemory, 0, _characterMemory.Length);
                 }
 
@@ -91,7 +92,7 @@ namespace CpuEmulator.NES
         {
             uint mappedAddress = 0;
 
-            if (_mapper.CpuMapRead(address, ref mappedAddress))
+            if (_mapper.CpuMapWrite(address, ref mappedAddress))
             {
                 _programMemory[mappedAddress] = data;
 
@@ -119,7 +120,7 @@ namespace CpuEmulator.NES
         {
             uint mappedAddress = 0;
 
-            if (_mapper.PpuMapRead(address, ref mappedAddress))
+            if (_mapper.PpuMapWrite(address, ref mappedAddress))
             {
                 _characterMemory[mappedAddress] = data;
 
