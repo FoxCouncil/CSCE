@@ -5,13 +5,14 @@ namespace CpuEmulator.NES
 {
     using FoxEngine;
     using System;
+    using System.IO;
     using System.Runtime.InteropServices;
 
     public class Fox2C02
     {
-        private short _scaline;
+        public short _scaline;
 
-        private short _cycle;
+        public short _cycle;
 
         private byte _fineX;
 
@@ -66,6 +67,8 @@ namespace CpuEmulator.NES
         public bool Nmi { get; set; }
 
         public bool FrameComplete { get; set; }
+
+
 
         public Fox2C02()
         {
@@ -248,8 +251,8 @@ namespace CpuEmulator.NES
                 _bgShifterPatternLo = (ushort)((_bgShifterPatternLo & 0xFF00) | _bgNextTileLsb);
                 _bgShifterPatternHi = (ushort)((_bgShifterPatternHi & 0xFF00) | _bgNextTileMsb);
 
-                _bgShifterAttributeLo = (ushort)((_bgShifterAttributeLo & 0xFF00) | ((_bgNextTileAttribute & 0b01) > 0 ? 0xFF : 0));
-                _bgShifterAttributeHi = (ushort)((_bgShifterAttributeHi & 0xFF00) | ((_bgNextTileAttribute & 0b10) > 0 ? 0xFF : 0));
+                _bgShifterAttributeLo = (ushort)((_bgShifterAttributeLo & 0xFF00) | ((_bgNextTileAttribute & 0b01) > 0 ? 0xFF : 0x00));
+                _bgShifterAttributeHi = (ushort)((_bgShifterAttributeHi & 0xFF00) | ((_bgNextTileAttribute & 0b10) > 0 ? 0xFF : 0x00));
             };
 
             Action updateShifters = () =>
@@ -309,13 +312,13 @@ namespace CpuEmulator.NES
 
                         case 4:
                         {
-                            _bgNextTileLsb = PpuRead((ushort)((_control.PatternBackground << 12) + (_bgNextTileId << 4) + _vRamAddress.FineY));
+                            _bgNextTileLsb = PpuRead((ushort)((_control.PatternBackground << 12) + ((ushort)_bgNextTileId << 4) + _vRamAddress.FineY));
                         }
                         break;
 
                         case 6:
                         {
-                            _bgNextTileMsb = PpuRead((ushort)((_control.PatternBackground << 12) + (_bgNextTileId << 4) + _vRamAddress.FineY + 8));
+                            _bgNextTileMsb = PpuRead((ushort)((_control.PatternBackground << 12) + ((ushort)_bgNextTileId << 4) + _vRamAddress.FineY + 8));
                         }
                         break;
 

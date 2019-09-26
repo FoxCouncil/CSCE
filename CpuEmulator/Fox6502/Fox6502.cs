@@ -4,7 +4,8 @@
 using CpuEmulator.NES;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.IO;
+using System.Linq;
 
 namespace CpuEmulator
 {
@@ -45,9 +46,17 @@ namespace CpuEmulator
         public uint CyclesTotal { get; private set; }
 
         public bool Complete => CyclesLeft == 0;
-
+        
+        public StreamWriter _logFile;
+        
         public Fox6502()
         {
+            _logFile = File.AppendText("fox6502.log");
+
+            _logFile.WriteLine();
+            _logFile.WriteLine();
+            _logFile.WriteLine($"---[ Start: {DateTime.Now.ToLongTimeString()} {DateTime.Now.ToLongDateString()} ]---");
+
             BuildInstructionSet();
         }
 
@@ -71,6 +80,8 @@ namespace CpuEmulator
             _fetched = 0;
 
             CyclesLeft = 8;
+
+            _logFile.WriteLine($"---[ RESET ]---");
         }
 
         public void IRQ()
@@ -132,6 +143,8 @@ namespace CpuEmulator
             {
                 _opcode = BusRead(PC);
 
+                var logPc = PC;
+
                 SetFlag(Flags.U, true);
 
                 PC++;
@@ -141,6 +154,13 @@ namespace CpuEmulator
                 CyclesLeft = (byte)(instruction.Cycles + (instruction.AddressMode() & instruction.Operation()));
 
                 SetFlag(Flags.U, true);
+
+                //var idx = Emulator.Code.IndexOf(Emulator.Code.First(kIdx => kIdx.Item1 == logPc));
+
+                //var it_a = Emulator.Code[idx];
+
+                //_logFile.WriteLine($"{it_a.Item2.PadRight(29)} A:{A.ToString("X2")} X:{X.ToString("X2")} Y:{Y.ToString("X2")} P:{P.ToString("X2")} SP:{SP.ToString("X2")} PPU:{Emulator._nes.Ppu._cycle.ToString().PadLeft(3)},{Emulator._nes.Ppu._scaline.ToString().PadLeft(3)} CYC:{CyclesTotal}");
+                //_logFile.Flush();
             }
 
             CyclesTotal++;

@@ -811,7 +811,7 @@ namespace CpuEmulator
 
             var value = _fetched ^ 0x00FF;
 
-            _temp = (ushort)(A + value + (GetFlag(Flags.C) ? 0 : 1));
+            _temp = (ushort)(A + value + (GetFlag(Flags.C) ? 1 : 0));
 
             SetFlag(Flags.C, (_temp & 0xFF00) > 0);
             SetFlag(Flags.Z, (_temp & 0x00FF) == 0);

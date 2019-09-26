@@ -138,11 +138,12 @@ namespace CpuEmulator
 
             if (lo == 0x00FF) // Simulate page boundry hardware bug
             {
-                _addrAbs = (ushort)(BusRead((ushort)((ptr & 0xFF00) << 8)) | BusRead(ptr));
+                _addrAbs = (ushort)((BusRead((ushort)(ptr & 0xFF00)) << 8) | BusRead(ptr));
             }
             else
             {
-                _addrAbs = (ushort)(BusRead((ushort)((ptr + 1) << 8)) | BusRead(ptr));
+
+                _addrAbs = (ushort)((BusRead((ushort)(ptr + 1)) << 8) | BusRead(ptr));
             }
 
             return byte.MinValue;

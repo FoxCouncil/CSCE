@@ -17,11 +17,11 @@ namespace CpuEmulator
 
         private byte _selectedPalette;
 
-        private NesBus _nes;
+        public static NesBus _nes;
 
         private Cartridge _cart;
 
-        private List<Tuple<ushort, string>> Code;
+        public static List<Tuple<ushort, string>> Code;
 
         public Emulator() : base("CPU Emulator", 780, 585)
         {
@@ -30,7 +30,7 @@ namespace CpuEmulator
 
         public override void Create()
         {
-            _cart = new Cartridge("nestest.nes");
+            _cart = new Cartridge("smb.nes");
 
             _nes.InsertCartridge(_cart);
 
@@ -38,8 +38,8 @@ namespace CpuEmulator
 
             _nes.Reset();
 
-            _nes.Cpu.PC = 0xC5F5;
-            _nes.Cpu.P = 0x24;
+            // _nes.Cpu.PC = 0xC5F5;
+            // _nes.Cpu.P = 0x24;
         }
 
         public override void Update(double frameTime)
