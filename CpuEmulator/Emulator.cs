@@ -23,23 +23,20 @@ namespace CpuEmulator
 
         public static List<Tuple<ushort, string>> Code;
 
-        public Emulator() : base("CPU Emulator", 780, 585)
+        public Emulator() : base("CPU Emulator", 780, 485)
         {
             _nes = new NesBus();
         }
 
         public override void Create()
         {
-            _cart = new Cartridge("smb.nes");
+            _cart = new Cartridge("nestest.nes");
 
             _nes.InsertCartridge(_cart);
 
             Code = _nes.Cpu.Disassemble(0, 0xFFFF);
 
             _nes.Reset();
-
-            // _nes.Cpu.PC = 0xC5F5;
-            // _nes.Cpu.P = 0x24;
         }
 
         public override void Update(double frameTime)
@@ -148,8 +145,18 @@ namespace CpuEmulator
 
             DrawSprite(0, 0, _nes.Ppu.Screen, 2);
 
+            //for (var yIdx = 0; yIdx < 30; yIdx++)
+            //{
+            //    for (var xIdx = 0; xIdx < 32; xIdx++)
+            //    {
+            //        var id = _nes.Ppu.NameTable[0, yIdx * 32 + xIdx];
+            //        // DrawString(xIdx * 16, yIdx * 16, HexOutput(id, 2), Pixel.White);
+            //        DrawSpritePartial(xIdx * 16, yIdx * 16, _nes.Ppu.GetPatternTable(1, _selectedPalette), (id & 0x0F) << 3, ((id >> 4) & 0x0F) << 3, 8, 8, 2);
+            //    }
+            //}
+
             DrawCPU(522, 2);
-            DrawCode(522, 72, 26);
+            DrawCode(538, 68, 26);
 
             // DrawString(10, 370, "SPACE = CLOCK   R = RESET    I = IRQ    N = NMI", Pixel.White);
         }

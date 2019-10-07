@@ -46,15 +46,11 @@ namespace CpuEmulator.NES
 
         private LoopyFlags _tRamAddress;
 
-        private byte[,] _tableName = new byte[2, 1024];
-
         private byte[,] _tablePattern = new byte[2, 4096];
 
         private byte[] _tablePalette = new byte[32];
 
         private Pixel[] _paletteScreen = new Pixel[64];
-
-        private Sprite _spriteScreen = new Sprite(256, 240);
 
         private Sprite[] _spriteNameTable = new[] { new Sprite(256, 240), new Sprite(256, 240) };
 
@@ -62,13 +58,13 @@ namespace CpuEmulator.NES
 
         private Cartridge _cartridge;
 
-        public Sprite Screen => _spriteScreen;
+        public Sprite Screen { get; } = new Sprite(256, 240);
+
+        public byte[,] NameTable { get; } = new byte[2, 1024];
 
         public bool Nmi { get; set; }
 
         public bool FrameComplete { get; set; }
-
-
 
         public Fox2C02()
         {
@@ -312,13 +308,15 @@ namespace CpuEmulator.NES
 
                         case 4:
                         {
-                            _bgNextTileLsb = PpuRead((ushort)((_control.PatternBackground << 12) + ((ushort)_bgNextTileId << 4) + _vRamAddress.FineY));
+                            ushort address = (ushort)((_control.PatternBackground << 12) + (_bgNextTileId << 4) + _vRamAddress.FineY);
+                            _bgNextTileLsb = PpuRead(address);
                         }
                         break;
 
                         case 6:
                         {
-                            _bgNextTileMsb = PpuRead((ushort)((_control.PatternBackground << 12) + ((ushort)_bgNextTileId << 4) + _vRamAddress.FineY + 8));
+                            ushort address = (ushort)((_control.PatternBackground << 12) + (_bgNextTileId << 4) + _vRamAddress.FineY + 8);
+                            _bgNextTileMsb = PpuRead(address);
                         }
                         break;
 
@@ -350,10 +348,7 @@ namespace CpuEmulator.NES
                 }
             }
 
-            if (_scaline == 240)
-            {
-                // NOOP
-            }
+            if (_scaline == 240) { /* NOOP */ }
 
             if (_scaline >= 241 && _scaline < 261)
             {
@@ -386,7 +381,7 @@ namespace CpuEmulator.NES
                 bgPalette = (byte)((bgPal1 << 1) | bgPal0);
             }
 
-            _spriteScreen.SetPixel(_cycle - 1, _scaline, GetColorFromPaletteRam(bgPalette, bgPixel));
+            Screen.SetPixel(_cycle - 1, _scaline, GetColorFromPaletteRam(bgPalette, bgPixel));
 
             _cycle++;
 
@@ -593,19 +588,19 @@ namespace CpuEmulator.NES
                     // Vertical
                     if (address >= 0x0000 && address <= 0x03FF)
                     {
-                        _tableName[0, address & 0x03FF] = data;
+                        NameTable[0, address & 0x03FF] = data;
                     }
                     else if (address >= 0x0400 && address <= 0x07FF)
                     {
-                        _tableName[1, address & 0x03FF] = data;
+                        NameTable[1, address & 0x03FF] = data;
                     }
                     else if (address >= 0x0800 && address <= 0x0BFF)
                     {
-                        _tableName[0, address & 0x03FF] = data;
+                        NameTable[0, address & 0x03FF] = data;
                     }
                     else if (address >= 0x0C00 && address <= 0x0FFF)
                     {
-                        _tableName[1, address & 0x03FF] = data;
+                        NameTable[1, address & 0x03FF] = data;
                     }
                 }
                 else if (_cartridge.Mirror == Mirror.Horizontal)
@@ -613,19 +608,19 @@ namespace CpuEmulator.NES
                     // Horizontal
                     if (address >= 0x0000 && address <= 0x03FF)
                     {
-                        _tableName[0, address & 0x03FF] = data;
+                        NameTable[0, address & 0x03FF] = data;
                     }
                     else if (address >= 0x0400 && address <= 0x07FF)
                     {
-                        _tableName[0, address & 0x03FF] = data;
+                        NameTable[0, address & 0x03FF] = data;
                     }
                     else if (address >= 0x0800 && address <= 0x0BFF)
                     {
-                        _tableName[1, address & 0x03FF] = data;
+                        NameTable[1, address & 0x03FF] = data;
                     }
                     else if (address >= 0x0C00 && address <= 0x0FFF)
                     {
-                        _tableName[1, address & 0x03FF] = data;
+                        NameTable[1, address & 0x03FF] = data;
                     }
                 }
             }
@@ -676,38 +671,38 @@ namespace CpuEmulator.NES
                 {
                     if (address >= 0x0000 && address <= 0x03FF)
                     {
-                        data = _tableName[0, address & 0x03FF];
+                        data = NameTable[0, address & 0x03FF];
                     }
                     else if (address >= 0x0400 && address <= 0x07FF)
                     {
-                        data = _tableName[1, address & 0x03FF];
+                        data = NameTable[1, address & 0x03FF];
                     }
                     else if (address >= 0x0800 && address <= 0x0BFF)
                     {
-                        data = _tableName[0, address & 0x03FF];
+                        data = NameTable[0, address & 0x03FF];
                     }
                     else if (address >= 0x0C00 && address <= 0x0FFF)
                     {
-                        data = _tableName[1, address & 0x03FF];
+                        data = NameTable[1, address & 0x03FF];
                     }
                 }
                 else if (_cartridge.Mirror == Mirror.Horizontal)
                 {
                     if (address >= 0x0000 && address <= 0x03FF)
                     {
-                        data = _tableName[0, address & 0x03FF];
+                        data = NameTable[0, address & 0x03FF];
                     }
                     else if (address >= 0x0400 && address <= 0x07FF)
                     {
-                        data = _tableName[0, address & 0x03FF];
+                        data = NameTable[0, address & 0x03FF];
                     }
                     else if (address >= 0x0800 && address <= 0x0BFF)
                     {
-                        data = _tableName[1, address & 0x03FF];
+                        data = NameTable[1, address & 0x03FF];
                     }
                     else if (address >= 0x0C00 && address <= 0x0FFF)
                     {
-                        data = _tableName[1, address & 0x03FF];
+                        data = NameTable[1, address & 0x03FF];
                     }
                 }
             }
@@ -847,7 +842,7 @@ namespace CpuEmulator.NES
 
             public byte PatternSprite { get { return Flags[3]; } set { Flags[3] = value; } }
 
-            public byte PatternBackground { get { return Flags[4]; } set { Flags[4] = value; } }
+            public byte PatternBackground { get { return (byte)(Flags[4] >> 4); } set { Flags[4] = value; } }
 
             public byte SpriteSize { get { return Flags[5]; } set { Flags[5] = value; } }
 
