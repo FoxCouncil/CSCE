@@ -1,16 +1,17 @@
 ﻿// Copyright (c) 2019 FoxCouncil - License: MIT
 // https://github.com/FoxCouncil/CSCE
 
-namespace CpuEmulator.NES
+namespace CpuEmulator.NES.Ppu
 {
     using FoxEngine;
     using System;
-    using System.IO;
-    using System.Runtime.InteropServices;
+    using System.Linq;
 
     public class Fox2C02
     {
-        public short _scaline;
+        private Cartridge _cartridge;
+
+        public short _scanline;
 
         public short _cycle;
 
@@ -56,11 +57,21 @@ namespace CpuEmulator.NES
 
         private Sprite[] _spritePatternTable = new[] { new Sprite(128, 128), new Sprite(128, 128) };
 
-        private Cartridge _cartridge;
+        private byte[] _spriteScanline = new byte[4 * 8];
+
+        private byte[] _spriteShifterPatternLo = new byte[8];
+         
+        private byte[] _spriteShifterPatternHi = new byte[8];
+
+        private byte _spriteCount;
 
         public Sprite Screen { get; } = new Sprite(256, 240);
 
         public byte[,] NameTable { get; } = new byte[2, 1024];
+
+        public byte[] OAMData { get; set; } = new byte[64 * 4];
+
+        public byte OAMAddress { get; set; }
 
         public bool Nmi { get; set; }
 
@@ -157,7 +168,7 @@ namespace CpuEmulator.NES
 
                         for (ushort col = 0; col < 8; col++)
                         {
-                            byte pixel = (byte)((tileLsb & 0x01) + (tileMsb & 0x01));
+                            byte pixel = (byte)(((tileLsb & 0x01) << 1) | (tileMsb & 0x01));
 
                             tileLsb >>= 1;
                             tileMsb >>= 1;
@@ -260,18 +271,43 @@ namespace CpuEmulator.NES
                     _bgShifterAttributeLo <<= 1;
                     _bgShifterAttributeHi <<= 1;
                 }
+
+                if (_mask.RenderSprites && _cycle >= 1 && _cycle < 258)
+                {
+                    for (var i = 0; i < _spriteCount; i++)
+                    {
+                        var spriteAddr = i.Address(4);
+
+                        if (_spriteScanline[spriteAddr + 3] > 0)
+                        {
+                            _spriteScanline[spriteAddr + 3]--;
+                        }
+                        else
+                        {
+                            _spriteShifterPatternLo[i] <<= 1;
+                            _spriteShifterPatternHi[i] <<= 1;
+                        }
+                    }
+                }
             };
 
-            if (_scaline >= -1 && _scaline < 240)
+            if (_scanline >= -1 && _scanline < 240)
             {
-                if (_scaline == 0 && _cycle == 0)
+                if (_scanline == 0 && _cycle == 0)
                 {
                     _cycle = 1;
                 }
 
-                if (_scaline == -1 && _cycle == 1)
+                if (_scanline == -1 && _cycle == 1)
                 {
                     _status.VerticalBlank = false;
+                    _status.SpriteOverflow = false;
+
+                    for (var i = 0; i < _spriteCount; i++)
+                    {
+                        _spriteShifterPatternLo[i] = 0;
+                        _spriteShifterPatternHi[i] = 0;
+                    }
                 }
 
                 if ((_cycle >= 2 && _cycle < 258) || (_cycle >= 321 && _cycle < 338))
@@ -337,22 +373,161 @@ namespace CpuEmulator.NES
                     loadBackgroundShifters();
                     transferAddressX();
                 }
-                else if (_cycle == 338 || _cycle == 340)
+
+                if (_scanline == -1 && _cycle >= 280 && _cycle < 305)
+                {
+                    transferAddressY();
+                }
+
+                if (_cycle == 338 || _cycle == 340)
                 {
                     _bgNextTileId = PpuRead((ushort)(0x2000 | (_vRamAddress.Register & 0x0FFF)));
                 }
 
-                if (_scaline == -1 && _cycle >= 280 && _cycle < 305)
+                // Foreground
+                if (_cycle == 257 && _scanline >= 0)
                 {
-                    transferAddressY();
+                    _spriteScanline = Enumerable.Repeat((byte)0xFF, _spriteScanline.Length).ToArray();
+                    _spriteCount = 0;
+
+                    byte oamEntry = 0x00;
+
+                    while (oamEntry < 64 && _spriteCount < 9)
+                    {
+                        var oamEntryAddr = oamEntry.Address(4);
+                        var diff = (short)(_scanline - OAMData[oamEntryAddr]);
+
+                        if (diff >= 0 && diff < (_control.SpriteSize > 0 ? 16 : 8))
+                        {
+                            if (_spriteCount < 8)
+                            {
+                                Array.Copy(OAMData, oamEntryAddr, _spriteScanline, _spriteCount.Address(4), 4);
+                                _spriteCount++;
+                            }
+                        }
+
+                        oamEntry++;
+                    }
+
+                    _status.SpriteOverflow = _spriteCount > 8;
+                }
+
+                if (_cycle == 340)
+                {
+                    for (var i = 0; i < _spriteCount; i++)
+                    {
+                        byte spritePatternBitsLo, spritePatternBitsHi;
+                        ushort spritePatternAddressLo, spritePatternAddressHi;
+
+                        var idxAddr = i.Address(4);
+
+                        if (_control.SpriteSize == 0)
+                        {
+                            // 8x8
+                            var attribute = _spriteScanline[idxAddr + 2];
+                            
+                            if ((attribute & 0x80) == 0)
+                            {
+                                // Sprite Not Flipped Vertically, normal
+                                spritePatternAddressLo = (ushort)(
+                                    (_control.PatternSprite << 12) 
+                                    | (_spriteScanline[idxAddr + 1] << 4) 
+                                    | (_scanline - _spriteScanline[idxAddr])
+                                );
+
+                            } 
+                            else
+                            {
+                                // Sprite Is Flipped Vertically, upside down
+                                spritePatternAddressLo = (ushort)(
+                                    (_control.PatternSprite << 12) 
+                                    | (_spriteScanline[idxAddr + 1] << 4) 
+                                    | (7 - (_scanline - _spriteScanline[idxAddr]))
+                                );
+                            }
+                        }
+                        else
+                        {
+                            // 8x16
+                            var attribute = _spriteScanline[idxAddr + 2];
+                            
+                            if ((attribute & 0x80) == 0)
+                            {
+                                // Sprite Not Flipped Vertically, normal
+                                if (_scanline - _spriteScanline[idxAddr] < 8)
+                                {
+                                    // Top Half
+                                    spritePatternAddressLo = (ushort)(
+                                        ((_spriteScanline[idxAddr + 1] & 0x01) << 12) 
+                                        | ((_spriteScanline[idxAddr + 1] & 0xFE) << 4)
+                                        | ((_scanline - _spriteScanline[idxAddr]) & 0x07)
+                                    );
+                                }
+                                else
+                                {
+                                    // Bottom Half
+                                    spritePatternAddressLo = (ushort)(
+                                        ((_spriteScanline[idxAddr + 1] & 0x01) << 12) 
+                                        | (((_spriteScanline[idxAddr + 1] & 0xFE) + 1) << 4)
+                                        | ((_scanline - _spriteScanline[idxAddr]) & 0x07)
+                                    );
+                                }
+                            }
+                            else
+                            {
+                                // Sprite Is Flipped Vertically, upside down
+                                if (_scanline - _spriteScanline[idxAddr] < 8)
+                                {
+                                     // Top Half
+                                    spritePatternAddressLo = (ushort)(
+                                        ((_spriteScanline[idxAddr + 1] & 0x01) << 12) 
+                                        | ((_spriteScanline[idxAddr + 1] & 0xFE) << 4)
+                                        | (7 - (_scanline - _spriteScanline[idxAddr]) & 0x07)
+                                    );
+                                }
+                                else
+                                {
+                                    // Bottom Half
+                                    spritePatternAddressLo = (ushort)(
+                                        ((_spriteScanline[idxAddr + 1] & 0x01) << 12) 
+                                        | (((_spriteScanline[idxAddr + 1] & 0xFE) + 1) << 4)
+                                        | (7 - (_scanline - _spriteScanline[idxAddr]) & 0x07)
+                                    );
+                                }
+                            }
+                        }
+
+                        spritePatternAddressHi = (ushort)(spritePatternAddressLo + 8);
+
+                        spritePatternBitsLo = PpuRead(spritePatternAddressLo);
+                        spritePatternBitsHi = PpuRead(spritePatternAddressHi);
+
+                        if ((_spriteScanline[idxAddr + 2] & 0x40) > 0)
+                        {
+                            Func<byte, byte> flipByte = (byte b) =>
+                            {
+                                b = (byte)((b & 0xF0) >> 4 | (b & 0x0F) << 4);
+                                b = (byte)((b & 0xCC) >> 2 | (b & 0x33) << 2);
+                                b = (byte)((b & 0xAA) >> 1 | (b & 0x55) << 1);
+
+                                return b;
+                            };
+
+                            spritePatternBitsLo = flipByte(spritePatternBitsLo);
+                            spritePatternBitsHi = flipByte(spritePatternBitsHi);
+                        }
+
+                        _spriteShifterPatternLo[i] = spritePatternBitsLo;
+                        _spriteShifterPatternHi[i] = spritePatternBitsHi;
+                    }
                 }
             }
 
-            if (_scaline == 240) { /* NOOP */ }
+            if (_scanline == 240) { /* NOOP */ }
 
-            if (_scaline >= 241 && _scaline < 261)
+            if (_scanline >= 241 && _scanline < 261)
             {
-                if (_scaline == 241 && _cycle == 1)
+                if (_scanline == 241 && _cycle == 1)
                 {
                     _status.VerticalBlank = true;
 
@@ -381,7 +556,67 @@ namespace CpuEmulator.NES
                 bgPalette = (byte)((bgPal1 << 1) | bgPal0);
             }
 
-            Screen.SetPixel(_cycle - 1, _scaline, GetColorFromPaletteRam(bgPalette, bgPixel));
+            byte fgPixel = 0;
+            byte fgPalette = 0;
+            byte fgPriority = 0;
+
+            if (_mask.RenderSprites)
+            {
+                for (var i = 0; i < _spriteCount; i++)
+                {
+                    var spriteAddr = i.Address(4);
+
+                    if (_spriteScanline[spriteAddr + 3] == 0)
+                    {
+                        byte fgPixelLo = (byte)((_spriteShifterPatternLo[i] & 0x80) > 0 ? 1 : 0);
+                        byte fgPixelHi = (byte)((_spriteShifterPatternHi[i] & 0x80) > 0 ? 1 : 0);
+
+                        fgPixel = (byte)((fgPixelHi << 1) | fgPixelLo);
+
+                        fgPalette = (byte)((_spriteScanline[spriteAddr + 2] & 0x03) + 0x04);
+                        fgPriority = (byte)((_spriteScanline[spriteAddr + 2] & 0x20) == 0 ? 1 : 0);
+
+                        if (fgPixel != 0)
+                        {
+                            break;
+                        }
+                    } 
+                }
+            }
+
+            byte pixel = 0;
+            byte palette = 0;
+
+            if (bgPixel == 0 && fgPixel == 0)
+            {
+                pixel = 0;
+                palette = 0;
+            }
+            else if (bgPixel == 0 && fgPixel > 0)
+            {
+                pixel = fgPixel;
+                palette = fgPalette;
+            }
+            else if (bgPixel > 0 && fgPixel == 0)
+            {
+                pixel = bgPixel;
+                palette = bgPalette;
+            }
+            else
+            {
+                if (fgPriority > 0)
+                {
+                    pixel = fgPixel;
+                    palette = fgPalette;
+                }
+                else
+                {
+                    pixel = bgPixel;
+                    palette = bgPalette;
+                }
+            }
+
+            Screen.SetPixel(_cycle - 1, _scanline, GetColorFromPaletteRam(palette, pixel));
 
             _cycle++;
 
@@ -389,11 +624,11 @@ namespace CpuEmulator.NES
             {
                 _cycle = 0;
 
-                _scaline++;
+                _scanline++;
 
-                if (_scaline >= 261)
+                if (_scanline >= 261)
                 {
-                    _scaline = -1;
+                    _scanline = -1;
 
                     FrameComplete = true;
                 }
@@ -405,7 +640,7 @@ namespace CpuEmulator.NES
             _fineX = 0;
             _addressLatch = 0;
             _dataBuffer = 0;
-            _scaline = 0;
+            _scanline = 0;
             _cycle = 0;
             _bgNextTileId = 0;
             _bgNextTileAttribute = 0;
@@ -442,10 +677,18 @@ namespace CpuEmulator.NES
 
                 case 0x0002: // Status
                     break;
+
                 case 0x0003: // OAM Address
-                    break;
+                {
+                    OAMAddress = data;
+                }
+                break;
+
                 case 0x0004: // OAM Data
-                    break;
+                {
+                    OAMData[OAMAddress] = data;
+                }
+                break;
 
                 case 0x0005: // Scroll
                 {
@@ -542,7 +785,13 @@ namespace CpuEmulator.NES
                     break;
 
                     case 0x0003: // OAM Address
+
                     case 0x0004: // OAM Data
+                    {
+                        data = OAMData[OAMAddress];
+                    }
+                    break;
+
                     case 0x0005: // Scroll
                     case 0x0006: // PPU Address
                         break;
@@ -731,157 +980,6 @@ namespace CpuEmulator.NES
             }
 
             return data;
-        }
-
-        public struct ByteUnionBitFieldBool
-        {
-            byte bits;
-
-            public bool this[int i]
-            {
-                get
-                {
-                    return (bits & (1 << i)) != 0;
-                }
-
-                set
-                {
-                    if (value)
-                    {
-                        bits |= (byte)(1 << i);
-                    }
-                    else
-                    {
-                        bits &= (byte)~(1 << i);
-                    }
-                }
-            }
-        }
-
-        public struct ByteUnionBitFieldByte
-        {
-            byte bits;
-
-            public byte this[int i]
-            {
-                get
-                {
-                    return (byte)(bits & (1 << i));
-                }
-
-                set
-                {
-                    if (value > 0)
-                    {
-                        bits |= (byte)(1 << i);
-                    }
-                    else
-                    {
-                        bits &= (byte)~(1 << i);
-                    }
-                }
-            }
-        }
-
-        [StructLayout(LayoutKind.Explicit)]
-        public struct StatusFlags
-        {
-            [FieldOffset(0)]
-            public byte Register;
-
-            [FieldOffset(0)]
-            private ByteUnionBitFieldBool Flags;
-
-            public bool SpriteOverflow { get { return Flags[5]; } set { Flags[5] = value; } }
-
-            public bool SpriteZeroHit { get { return Flags[6]; } set { Flags[6] = value; } }
-
-            public bool VerticalBlank { get { return Flags[7]; } set { Flags[7] = value; } }
-        }
-
-        [StructLayout(LayoutKind.Explicit)]
-        public struct MaskFlags
-        {
-            [FieldOffset(0)]
-            public byte Register;
-
-            [FieldOffset(0)]
-            private ByteUnionBitFieldBool Flags;
-
-            public bool Grayscale { get { return Flags[0]; } set { Flags[0] = value; } }
-
-            public bool RenderBackgroundLeft { get { return Flags[1]; } set { Flags[1] = value; } }
-
-            public bool RenderSpritesLeft { get { return Flags[2]; } set { Flags[2] = value; } }
-
-            public bool RenderBackground { get { return Flags[3]; } set { Flags[3] = value; } }
-
-            public bool RenderSprites { get { return Flags[4]; } set { Flags[4] = value; } }
-
-            public bool EnhanceRed { get { return Flags[5]; } set { Flags[5] = value; } }
-
-            public bool EnhanceGreen { get { return Flags[6]; } set { Flags[6] = value; } }
-
-            public bool EnhancheBlue { get { return Flags[7]; } set { Flags[7] = value; } }
-        }
-
-        [StructLayout(LayoutKind.Explicit)]
-        public struct ControlFlags
-        {
-            [FieldOffset(0)]
-            public byte Register;
-
-            [FieldOffset(0)]
-            private ByteUnionBitFieldByte Flags;
-
-            public byte NameTableX { get { return Flags[0]; } set { Flags[0] = value; } }
-
-            public byte NameTableY { get { return Flags[1]; } set { Flags[1] = value; } }
-
-            public byte IncrementMode { get { return Flags[2]; } set { Flags[2] = value; } }
-
-            public byte PatternSprite { get { return Flags[3]; } set { Flags[3] = value; } }
-
-            public byte PatternBackground { get { return (byte)(Flags[4] >> 4); } set { Flags[4] = value; } }
-
-            public byte SpriteSize { get { return Flags[5]; } set { Flags[5] = value; } }
-
-            public byte SlaveMode { get { return Flags[6]; } set { Flags[6] = value; } }
-
-            public bool EnableNmi { get { return Flags[7] > 0; } set { Flags[7] = (byte)(value ? 1 : 0); } }
-        }
-
-        public struct LoopyFlags
-        {
-            public ushort Register
-            {
-                get
-                {
-                    return (ushort)((Unused & 1) << 15 | (FineY & 7) << 12 | (NameTableY & 1) << 11 | (NameTableX & 1) << 10 | (CoarseY & 0x1F) << 5 | (CoarseX & 0x1F));
-                }
-
-                set
-                {
-                    CoarseX = (ushort)(value & 0x1F);
-                    CoarseY = (ushort)((value >> 5) & 0x1F);
-                    NameTableX = (ushort)((value >> 10) & 1);
-                    NameTableY = (ushort)((value >> 11) & 1);
-                    FineY = (ushort)((value >> 12) & 7);
-                    Unused = (ushort)((value >> 15) & 1);
-                }
-            }
-
-            public ushort CoarseX;
-
-            public ushort CoarseY;
-
-            public ushort NameTableX;
-
-            public ushort NameTableY;
-
-            public ushort FineY;
-
-            public ushort Unused;
         }
     }
 }

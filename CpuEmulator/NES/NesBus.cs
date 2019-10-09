@@ -1,17 +1,26 @@
 ﻿// Copyright (c) 2019 FoxCouncil - License: MIT
 // https://github.com/FoxCouncil/CSCE
 
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace CpuEmulator.NES
+namespace CpuEmulator
 {
+    using CpuEmulator.NES;
+    using CpuEmulator.NES.Ppu;
+
     public class NesBus
     {
         private uint _totalCycles;
 
         private byte[] _controller = new byte[2];
+
+        private byte _dmaPage;
+
+        private byte _dmaAddress;
+
+        private byte _dmaData;
+
+        private bool _dmaTransfer;
+
+        private bool _dmaDummy = true;
 
         public Fox6502 Cpu { get; } = new Fox6502();
 
@@ -42,6 +51,12 @@ namespace CpuEmulator.NES
             else if (address >= 0x2000 && address <= 0x3FFF)
             {
                 Ppu.CpuWrite((ushort)(address & 0x0007), data);
+            }
+            else if (address == 0x4014)
+            {
+                _dmaPage = data;
+                _dmaAddress = 0;
+                _dmaTransfer = true;
             }
             else if (address >= 0x4016 && address <= 0x4017)
             {
@@ -97,7 +112,39 @@ namespace CpuEmulator.NES
 
             if (_totalCycles % 3 == 0)
             {
-                Cpu.Clock();
+                if (_dmaTransfer)
+                {
+                    if (_dmaDummy)
+                    {
+                        if (_totalCycles % 2 == 1)
+                        {
+                            _dmaDummy = false;
+                        }
+                    }
+                    else
+                    {
+                        if (_totalCycles % 2 == 0)
+                        {
+                            _dmaData = Read((ushort)(_dmaPage << 8 | _dmaAddress));
+                        }
+                        else
+                        {
+                            Ppu.OAMData[_dmaAddress] = _dmaData;
+
+                            _dmaAddress++;
+
+                            if (_dmaAddress == 0)
+                            {
+                                _dmaTransfer = false;
+                                _dmaDummy = true;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    Cpu.Clock();
+                }
             }
 
             if (Ppu.Nmi)

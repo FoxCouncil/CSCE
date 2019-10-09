@@ -30,7 +30,7 @@ namespace CpuEmulator
 
         public override void Create()
         {
-            _cart = new Cartridge("nestest.nes");
+            _cart = new Cartridge("smb.nes");
 
             _nes.InsertCartridge(_cart);
 
@@ -156,7 +156,13 @@ namespace CpuEmulator
             //}
 
             DrawCPU(522, 2);
-            DrawCode(538, 68, 26);
+            // DrawCode(538, 68, 26);
+
+            for (var idx = 0; idx < 26; idx++)
+            {
+                var output = $"{HexOutput(idx, 2)}: ({(_nes.Ppu.OAMData[idx * 4 + 3]).ToString().PadLeft(3, '0')}, {(_nes.Ppu.OAMData[idx * 4]).ToString().PadLeft(3, '0')}) ID: {HexOutput(_nes.Ppu.OAMData[idx * 4 + 1], 2)} AT: {_nes.Ppu.OAMData[idx * 4 + 2]}";
+                DrawString(538, 72 + idx * 10, output, Pixel.White);
+            }
 
             // DrawString(10, 370, "SPACE = CLOCK   R = RESET    I = IRQ    N = NMI", Pixel.White);
         }

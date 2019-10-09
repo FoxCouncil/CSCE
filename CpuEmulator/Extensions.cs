@@ -18,5 +18,15 @@ namespace CpuEmulator
 
             return theStructure;
         }
+
+        public static int Address(this int number, int size)
+        {
+            return number * size;
+        }
+
+        public static byte Address(this byte number, int size)
+        {
+            return (byte)(number * size);
+        }
     }
 }
