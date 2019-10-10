@@ -30,7 +30,7 @@ namespace CpuEmulator
 
         public override void Create()
         {
-            _cart = new Cartridge("smb.nes");
+            _cart = new Cartridge("dk.nes");
 
             _nes.InsertCartridge(_cart);
 

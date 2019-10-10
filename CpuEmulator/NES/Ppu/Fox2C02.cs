@@ -912,7 +912,7 @@ namespace CpuEmulator.NES.Ppu
             {
                 data = _tablePattern[(address & 0x1000) >> 12, address & 0x0FFF];
             }
-            else if (address > 0x2000 && address <= 0x3EFF)
+            else if (address >= 0x2000 && address <= 0x3EFF)
             {
                 address &= 0x0FFF;
 

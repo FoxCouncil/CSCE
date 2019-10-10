@@ -16,17 +16,17 @@ namespace CpuEmulator.NES.Ppu
 
         public byte NameTableX { get { return Flags[0]; } set { Flags[0] = value; } }
 
-        public byte NameTableY { get { return Flags[1]; } set { Flags[1] = value; } }
+        public byte NameTableY { get { return (byte)(Flags[1] >> 1); } set { Flags[1] = value; } }
 
-        public byte IncrementMode { get { return Flags[2]; } set { Flags[2] = value; } }
+        public byte IncrementMode { get { return (byte)(Flags[2] >> 2); } set { Flags[2] = value; } }
 
         public byte PatternSprite { get { return (byte)(Flags[3] >> 3); } set { Flags[3] = value; } }
 
         public byte PatternBackground { get { return (byte)(Flags[4] >> 4); } set { Flags[4] = value; } }
 
-        public byte SpriteSize { get { return Flags[5]; } set { Flags[5] = value; } }
+        public byte SpriteSize { get { return (byte)(Flags[5] >> 5); } set { Flags[5] = value; } }
 
-        public byte SlaveMode { get { return Flags[6]; } set { Flags[6] = value; } }
+        public byte SlaveMode { get { return (byte)(Flags[6] >> 6); } set { Flags[6] = value; } }
 
         public bool EnableNmi { get { return Flags[7] > 0; } set { Flags[7] = (byte)(value ? 1 : 0); } }
     }
