@@ -8,7 +8,7 @@ namespace FoxEngine
 
     public class Sprite
     {
-        private const int kBpp = 4;
+        // private const int kBpp = 4;
 
         public Pixel[] PixelData;
 
@@ -45,7 +45,7 @@ namespace FoxEngine
 
         ~Sprite()
         {
-            if (Handle != null)
+            if (((IntPtr)Handle) != IntPtr.Zero)
             {
                 Handle.Free();
             }

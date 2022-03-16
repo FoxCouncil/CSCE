@@ -20,13 +20,13 @@ namespace FoxEngine
         private const string WINDOW_CLASS_NAME = "WC_FOX_ENGINE";
         private const string WINDOWS_NOT_SUPPORTED_MESSAGE = "This program requires Windows NT!";
 
-        private Engine _engine;
+        private readonly Engine _engine;
 
-        private bool[] _keyboardStateNew;
-        private bool[] _keyboardStateOld;
+        private readonly bool[] _keyboardStateNew;
+        private readonly bool[] _keyboardStateOld;
 
-        private bool[] _mouseStateNew;
-        private bool[] _mouseStateOld;
+        private readonly bool[] _mouseStateNew;
+        private readonly bool[] _mouseStateOld;
 
         private WNDCLASSEX _windowClass;
 
@@ -36,7 +36,7 @@ namespace FoxEngine
 
         private GLuint _glBuffer;
 
-        private MSG _windowMsg;
+        // private MSG _windowMsg;
 
         internal WindowsPlatform(Engine engine)
         {
@@ -51,7 +51,7 @@ namespace FoxEngine
 
         public void MessageBox(string title, string message)
         {
-            Interop.MessageBox(IntPtr.Zero, message, title, 0);
+            _ = Interop.MessageBox(IntPtr.Zero, message, title, 0);
         }
 
         public void Initialize()
@@ -85,7 +85,7 @@ namespace FoxEngine
 
         public void Run()
         {
-            var returnVal = 0;
+            int returnVal;
 
             while ((returnVal = GetMessage(out MSG _windowMsg, IntPtr.Zero, 0, 0)) != 0)
             {
@@ -370,7 +370,7 @@ namespace FoxEngine
 
             if (regResult == 0)
             {
-                Interop.MessageBox(IntPtr.Zero, WINDOWS_NOT_SUPPORTED_MESSAGE, _engine.Name, MessageBoxOptions.IconError);
+                _ = Interop.MessageBox(IntPtr.Zero, WINDOWS_NOT_SUPPORTED_MESSAGE, _engine.Name, MessageBoxOptions.IconError);
                 throw new Exception(WINDOWS_NOT_SUPPORTED_MESSAGE);
             }
         }
@@ -485,7 +485,7 @@ namespace FoxEngine
             [DllImport(DllGdi32)]
             internal static extern bool SwapBuffers(IntPtr hdc);
 
-            [DllImport(DllKernel32, CharSet = CharSet.Auto)]
+            [DllImport(DllKernel32, CharSet = CharSet.Unicode)]
             internal static extern IntPtr GetModuleHandle(string lpModuleName);
 
             [DllImport(DllUser32)]
@@ -503,14 +503,14 @@ namespace FoxEngine
             [DllImport(DllUser32, SetLastError = true, CharSet = CharSet.Auto)]
             internal static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
-            [DllImport(DllUser32, CharSet = CharSet.Auto)]
+            [DllImport(DllUser32, CharSet = CharSet.Unicode)]
             internal static extern int MessageBox(IntPtr hWnd, string text, string caption, MessageBoxOptions options);
 
             [DllImport(DllUser32)]
             [return: MarshalAs(UnmanagedType.U2)]
             internal static extern short RegisterClassEx([In] ref WNDCLASSEX lpwcx);
 
-            [DllImport(DllUser32, SetLastError = true)]
+            [DllImport(DllUser32, SetLastError = true, CharSet = CharSet.Unicode)]
             internal static extern IntPtr CreateWindowEx(WindowStylesEx dwExStyle, string lpClassName, string lpWindowName, WindowStyles dwStyle, int x, int y, int nWidth, int nHeight, IntPtr hWndParent, IntPtr hMenu, IntPtr hInstance, IntPtr lpParam);
 
             [DllImport(DllUser32, CharSet = CharSet.Unicode, SetLastError = true)]
@@ -538,7 +538,7 @@ namespace FoxEngine
             [DllImport(DllUser32)]
             internal static extern bool AdjustWindowRectEx(ref RECT lpRect, WindowStyles dwStyle, bool bMenu, WindowStylesEx dwExStyle);
 
-            [DllImport(DllUser32)]
+            [DllImport(DllUser32, CharSet = CharSet.Unicode)]
             internal static extern IntPtr LoadIcon(IntPtr hInstance, string lpIconName);
 
             [DllImport(DllUser32)]
@@ -562,7 +562,7 @@ namespace FoxEngine
             [DllImport(DllOpenGl32)]
             internal static extern bool wglMakeCurrent(IntPtr hDc, IntPtr newContext);
 
-            [DllImport(DllOpenGl32, CharSet = CharSet.Ansi, SetLastError = true, ExactSpelling = true)]
+            [DllImport(DllOpenGl32, CharSet = CharSet.Unicode, SetLastError = true, ExactSpelling = true)]
             internal static extern IntPtr wglGetProcAddress(string functionName);
 
             internal delegate bool wglSwapInterval(int interval);
@@ -2775,13 +2775,13 @@ namespace FoxEngine
 
                 public override bool Equals(object obj)
                 {
-                    if (obj is RECT)
+                    if (obj is RECT rect)
                     {
-                        return Equals((RECT)obj);
+                        return Equals(rect);
                     }
-                    else if (obj is System.Drawing.Rectangle)
+                    else if (obj is System.Drawing.Rectangle rectangle)
                     {
-                        return Equals(new RECT((System.Drawing.Rectangle)obj));
+                        return Equals(new RECT(rectangle));
                     }
 
                     return false;
@@ -2831,14 +2831,14 @@ namespace FoxEngine
         }
 
         private readonly int[] _keyMap = new[] {
-             0,   0,   0,   0, 0,  0,   0,  0,   0, 0,   0, 0, 0, 0, 0, 0, // 15 
-             0,   0,   0,   0, 0,  0,   0,  0,   0, 0,   0, 0, 0, 0, 0, 0, // 31
-            12,   0,   0,   0, 0, 23,  21, 24,  22, 0,   0, 0, 0, 0, 0, 0, // 47
-             0,   0,   0,   0, 0,  0,   0,  0,   0, 0,   0, 0, 0, 0, 0, 0, // 63
-             0, 111,   0, 113, 0,  0, 116,  0,   0, 0,   0, 0, 0, 0, 0, 0, // 79
-           126,   0, 128, 129, 0,  0,   0,  0, 134, 0, 136, 0, 0, 0, 0, 0, // 95
-             0,   0,   0,   0, 0,  0,   0,  0,   0, 0,   0, 0, 0, 0, 0, 0, // 111
-             0,   0,   0,   0, 0,  0,   0,  0,   0, 0,   0, 0, 0, 0, 0, 0  // 127
+             0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0, 0, 0, 0, 0, // 15 
+             0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0, 0, 0, 0, 0, // 31
+            12,   0,   0,   0,   0,  23,  21,  24,  22,   0,   0, 0, 0, 0, 0, 0, // 47
+             0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0, 0, 0, 0, 0, // 63
+             0, 111, 112, 113, 114, 115, 116,   0,   0,   0,   0, 0, 0, 0, 0, 0, // 79
+           126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 0, 0, 0, 0, 0, // 95
+             0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0, 0, 0, 0, 0, // 111
+             0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0, 0, 0, 0, 0, 0  // 127
         };
     }
 }

@@ -3,7 +3,7 @@
 
 namespace CpuEmulator.NES.Ppu
 {
-    using FoxEngine;
+    using FoxEngineLib.Types.Drawing;
     using System;
     using System.Linq;
 
@@ -189,7 +189,7 @@ namespace CpuEmulator.NES.Ppu
 
         public void Clock()
         {
-            Action incrementScrollX = () =>
+            void incrementScrollX()
             {
                 if (_mask.RenderBackground || _mask.RenderSprites)
                 {
@@ -203,9 +203,9 @@ namespace CpuEmulator.NES.Ppu
                         _vRamAddress.CoarseX++;
                     }
                 }
-            };
+            }
 
-            Action incrementScrollY = () =>
+            void incrementScrollY()
             {
                 if (_mask.RenderBackground || _mask.RenderSprites)
                 {
@@ -232,18 +232,18 @@ namespace CpuEmulator.NES.Ppu
                         }
                     }
                 }
-            };
+            }
 
-            Action transferAddressX = () =>
+            void transferAddressX()
             {
                 if (_mask.RenderBackground || _mask.RenderSprites)
                 {
                     _vRamAddress.NameTableX = _tRamAddress.NameTableX;
                     _vRamAddress.CoarseX = _tRamAddress.CoarseX;
                 }
-            };
+            }
 
-            Action transferAddressY = () =>
+            void transferAddressY()
             {
                 if (_mask.RenderBackground || _mask.RenderSprites)
                 {
@@ -251,18 +251,18 @@ namespace CpuEmulator.NES.Ppu
                     _vRamAddress.NameTableY = _tRamAddress.NameTableY;
                     _vRamAddress.CoarseY = _tRamAddress.CoarseY;
                 }
-            };
+            }
 
-            Action loadBackgroundShifters = () =>
+            void loadBackgroundShifters()
             {
                 _bgShifterPatternLo = (ushort)((_bgShifterPatternLo & 0xFF00) | _bgNextTileLsb);
                 _bgShifterPatternHi = (ushort)((_bgShifterPatternHi & 0xFF00) | _bgNextTileMsb);
 
                 _bgShifterAttributeLo = (ushort)((_bgShifterAttributeLo & 0xFF00) | ((_bgNextTileAttribute & 0b01) > 0 ? 0xFF : 0x00));
                 _bgShifterAttributeHi = (ushort)((_bgShifterAttributeHi & 0xFF00) | ((_bgNextTileAttribute & 0b10) > 0 ? 0xFF : 0x00));
-            };
+            }
 
-            Action updateShifters = () =>
+            void updateShifters()
             {
                 if (_mask.RenderBackground)
                 {
@@ -289,7 +289,7 @@ namespace CpuEmulator.NES.Ppu
                         }
                     }
                 }
-            };
+            }
 
             if (_scanline >= -1 && _scanline < 240)
             {

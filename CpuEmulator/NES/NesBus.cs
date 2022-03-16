@@ -4,29 +4,40 @@
 namespace CpuEmulator
 {
     using CpuEmulator.NES;
+    using CpuEmulator.NES.Apu;
     using CpuEmulator.NES.Ppu;
 
     public class NesBus
     {
-        private uint _totalCycles;
+        uint _totalCycles;
 
-        private byte[] _controller = new byte[2];
+        byte[] _controller = new byte[2];
 
-        private byte _dmaPage;
+        byte _dmaPage;
 
-        private byte _dmaAddress;
+        byte _dmaAddress;
 
-        private byte _dmaData;
+        byte _dmaData;
 
-        private bool _dmaTransfer;
+        bool _dmaTransfer;
 
-        private bool _dmaDummy = true;
+        bool _dmaDummy = true;
 
-        public Fox6502 Cpu { get; } = new Fox6502();
+        double _audioTime;
 
-        public Fox2C02 Ppu { get; } = new Fox2C02();
+        double _audioTimePerSample;
+
+        double _audioTimePerClock;
+
+        public Fox6502 Cpu { get; } = new();
+
+        public Fox2C02 Ppu { get; } = new();
+
+        public Fox2A03 Apu { get; } = new();
 
         public Cartridge Cart { get; private set; }
+
+        public double AudioSample { get; private set; }
 
         // 2KB of RAM
         public byte[] Ram { get; set; } = new byte[2048];
@@ -51,6 +62,10 @@ namespace CpuEmulator
             else if (address >= 0x2000 && address <= 0x3FFF)
             {
                 Ppu.CpuWrite((ushort)(address & 0x0007), data);
+            }
+            else if ((address >= 0x4000 && address <= 0x4013) || address == 0x4015 || address == 0x4017)
+            {
+                Apu.CpuWrite(address, data);
             }
             else if (address == 0x4014)
             {
@@ -90,6 +105,12 @@ namespace CpuEmulator
             return data;
         }
 
+        public void SetFrequency(uint sampleRate)
+        {
+            _audioTimePerSample = 1 / (double)sampleRate;
+            _audioTimePerClock = 1 / (double)5369318; // Pixel Processing Rate (NTSC)
+        }
+
         public void InsertCartridge(Cartridge cartridge)
         {
             Cart = cartridge;
@@ -102,13 +123,16 @@ namespace CpuEmulator
             Cart.Reset();
             Cpu.Reset();
             Ppu.Reset();
+            Apu.Reset();
 
             _totalCycles = 0;
         }
 
-        public void Clock()
+        public bool Clock()
         {
             Ppu.Clock();
+
+            Apu.Clock();
 
             if (_totalCycles % 3 == 0)
             {
@@ -147,6 +171,19 @@ namespace CpuEmulator
                 }
             }
 
+            // Synchronize with audio
+            var sampleReady = false;
+
+            _audioTime += _audioTimePerClock;
+
+            if (_audioTime >= _audioTimePerSample)
+            {
+                _audioTime -= _audioTimePerSample;
+                AudioSample = Apu.GetOuputSample();
+                sampleReady = true;
+            }
+
+            // Vertical Blanking Period Entered Interrupt
             if (Ppu.Nmi)
             {
                 Ppu.Nmi = false;
@@ -154,6 +191,8 @@ namespace CpuEmulator
             }
 
             _totalCycles++;
+
+            return sampleReady;
         }
     }
 }

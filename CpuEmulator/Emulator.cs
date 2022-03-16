@@ -4,16 +4,18 @@
 namespace CpuEmulator
 {
     using CpuEmulator.NES;
-    using FoxEngine;
+    using FoxEngineLib;
+    using FoxEngineLib.Types.Drawing;
+    using FoxEngineLib.Types.Input;
     using System;
     using System.Collections.Generic;
     using System.Linq;
 
-    class Emulator : Engine
+    class Emulator : FoxEngine
     {
         private bool _isRunning;
 
-        private float _timeLeft;
+        private readonly float _timeLeft;
 
         private byte _selectedPalette;
 
@@ -23,18 +25,20 @@ namespace CpuEmulator
 
         public static List<Tuple<ushort, string>> Code;
 
-        public Emulator() : base("CPU Emulator", 780, 485)
+        public Emulator() : base(780, 485, 2, "CPU Emulator")
         {
             _nes = new NesBus();
         }
 
         public override void Create()
         {
-            _cart = new Cartridge("dk.nes");
+            _cart = new Cartridge(@"X:\GitHub\FoxCouncil\CSCE\CpuEmulator\bin\Debug\net6.0\dk.nes");
 
             _nes.InsertCartridge(_cart);
 
             Code = _nes.Cpu.Disassemble(0, 0xFFFF);
+
+            _nes.SetFrequency(AudioSampleFrequency);
 
             _nes.Reset();
         }
@@ -53,59 +57,59 @@ namespace CpuEmulator
             _nes.Controller[0] |= (byte)(Keyboard[KeyboardButton.Left].Held ? 0x02 : 0);
             _nes.Controller[0] |= (byte)(Keyboard[KeyboardButton.Right].Held ? 0x01 : 0);
 
-            if (_isRunning)
-            {
-                if (_timeLeft > 0.0f)
-                {
-                    _timeLeft -= (float)frameTime;
-                }
-                else
-                {
-                    _timeLeft += (1f / 60f) - (float)frameTime;
+            //if (_isRunning)
+            //{
+            //    if (_timeLeft > 0.0f)
+            //    {
+            //        _timeLeft -= (float)frameTime;
+            //    }
+            //    else
+            //    {
+            //        _timeLeft += (1f / 60f) - (float)frameTime;
 
-                    do
-                    {
-                        _nes.Clock();
-                    }
-                    while (!_nes.Ppu.FrameComplete);
+            //        do
+            //        {
+            //            _nes.Clock();
+            //        }
+            //        while (!_nes.Ppu.FrameComplete);
 
-                    _nes.Ppu.FrameComplete = false;
-                }
-            }
-            else
-            {
-                if (Keyboard[KeyboardButton.C].Pressed)
-                {
-                    do
-                    {
-                        _nes.Clock();
-                    }
-                    while (!_nes.Cpu.Complete);
+            //        _nes.Ppu.FrameComplete = false;
+            //    }
+            //}
+            //else
+            //{
+            //    if (Keyboard[KeyboardButton.C].Pressed)
+            //    {
+            //        do
+            //        {
+            //            _nes.Clock();
+            //        }
+            //        while (!_nes.Cpu.Complete);
 
-                    do
-                    {
-                        _nes.Clock();
-                    }
-                    while (_nes.Cpu.Complete);
-                }
+            //        do
+            //        {
+            //            _nes.Clock();
+            //        }
+            //        while (_nes.Cpu.Complete);
+            //    }
 
-                if (Keyboard[KeyboardButton.F].Pressed)
-                {
-                    do
-                    {
-                        _nes.Clock();
-                    }
-                    while (!_nes.Ppu.FrameComplete);
+            //    if (Keyboard[KeyboardButton.F].Pressed)
+            //    {
+            //        do
+            //        {
+            //            _nes.Clock();
+            //        }
+            //        while (!_nes.Ppu.FrameComplete);
 
-                    do
-                    {
-                        _nes.Clock();
-                    }
-                    while (!_nes.Cpu.Complete);
+            //        do
+            //        {
+            //            _nes.Clock();
+            //        }
+            //        while (!_nes.Cpu.Complete);
 
-                    _nes.Ppu.FrameComplete = false;
-                }
-            }
+            //        _nes.Ppu.FrameComplete = false;
+            //    }
+            //}
 
             if (Keyboard[KeyboardButton.Space].Pressed)
             {
@@ -158,13 +162,20 @@ namespace CpuEmulator
             DrawCPU(522, 2);
             // DrawCode(538, 68, 26);
 
-            for (var idx = 0; idx < 26; idx++)
-            {
-                var output = $"{HexOutput(idx, 2)}: ({(_nes.Ppu.OAMData[idx * 4 + 3]).ToString().PadLeft(3, '0')}, {(_nes.Ppu.OAMData[idx * 4]).ToString().PadLeft(3, '0')}) ID: {HexOutput(_nes.Ppu.OAMData[idx * 4 + 1], 2)} AT: {_nes.Ppu.OAMData[idx * 4 + 2]}";
-                DrawString(538, 72 + idx * 10, output, Pixel.White);
-            }
+            //for (var idx = 0; idx < 26; idx++)
+            //{
+            //    var output = $"{HexOutput(idx, 2)}: ({(_nes.Ppu.OAMData[idx * 4 + 3]).ToString().PadLeft(3, '0')}, {(_nes.Ppu.OAMData[idx * 4]).ToString().PadLeft(3, '0')}) ID: {HexOutput(_nes.Ppu.OAMData[idx * 4 + 1], 2)} AT: {_nes.Ppu.OAMData[idx * 4 + 2]}";
+            //    DrawString(538, 72 + idx * 10, output, Pixel.White);
+            //}
 
             // DrawString(10, 370, "SPACE = CLOCK   R = RESET    I = IRQ    N = NMI", Pixel.White);
+        }
+
+        public override double GenerateSample(uint channel, double time, double timeStep)
+        {
+            while (!_nes.Clock());
+
+            return _nes.AudioSample;
         }
 
         public override void Destroy()
@@ -174,7 +185,12 @@ namespace CpuEmulator
 
         void DrawCode(int x, int y, int nLines)
         {
-            var idx = Code.IndexOf(Code.First(kIdx => kIdx.Item1 == _nes.Cpu.PC));
+            var idx = Code.IndexOf(Code.FirstOrDefault(kIdx => kIdx.Item1 == _nes.Cpu.PC));
+
+            if (idx == -1)
+            {
+                return;
+            }
 
             var it_a = Code[idx];
 
@@ -197,7 +213,12 @@ namespace CpuEmulator
                 }
             }
 
-            idx = Code.IndexOf(Code.First(kIdx => kIdx.Item1 == _nes.Cpu.PC));
+            idx = Code.IndexOf(Code.FirstOrDefault(kIdx => kIdx.Item1 == _nes.Cpu.PC));
+
+            if (idx == -1)
+            {
+                return;
+            }
 
             it_a = Code[idx];
 
@@ -258,9 +279,9 @@ namespace CpuEmulator
             }
         }
 
-        private string HexOutput(int number, byte length)
+        private static string HexOutput(int number, byte length)
         {
-            return number.ToString($"X{length.ToString()}");
+            return number.ToString($"X{length}");
         }
     }
 }

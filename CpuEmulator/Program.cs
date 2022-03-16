@@ -7,7 +7,8 @@ namespace CpuEmulator
     {
         static void Main(string[] args)
         {
-            new Emulator().Start();
+            new Emulator().Run();
+            // new CpuEmulatorEngine().Start();
         }
     }
 }
